@@ -17,6 +17,7 @@
     "backend-wedding": "file:",
     "cloudinary": "^2.5.1",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "firebase": "^11.0.1",
     "firebase-admin": "^13.0.0",

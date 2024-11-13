@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const { initializeApp } = require("firebase/app");
@@ -23,25 +24,25 @@ const serviceAccount = require("./serviceAccountKey.json");
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://web-undangan-42f23-default-rtdb.firebaseio.com", // Ensure this URL matches your project
+    databaseURL: process.env.FIREBASE_DATABASE_URL, // Use the .env variable for the database URL
   });
 }
 
 // Initialize Firebase (new modular SDK v9+)
 const firebaseConfig = {
-  apiKey: "AIzaSyBkA-g2xDMKxIjFAKm0rx7He0USiLI1Noc",
-  authDomain: "web-undangan-42f23.firebaseapp.com",
-  projectId: "web-undangan-42f23",
-  storageBucket: "web-undangan-42f23.firebasestorage.app",
-  messagingSenderId: "17080874518",
-  appId: "1:17080874518:web:2d777ba3f7003e1b432737",
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
 };
 
 // Configure Cloudinary with your credentials
 cloudinary.config({
-  cloud_name: "djgr3hq5k",
-  api_key: "122714586646415",
-  api_secret: "utEKAi7kF1ExsyUxYtF7NJ_piRM",
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 const uploadFileToCloudinary = (filePath) => {
