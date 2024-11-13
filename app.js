@@ -138,6 +138,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 //post gallery
+
 app.post("/uploadGallery", upload.single("image"), async (req, res) => {
   console.log(req.body); // Log the body to ensure it's correct
   console.log(req.file); // Log the file to check if it's uploaded
