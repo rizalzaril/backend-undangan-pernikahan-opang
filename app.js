@@ -26,7 +26,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyBkA-g2xDMKxIjFAKm0rx7He0USiLI1Noc",
   authDomain: "web-undangan-42f23.firebaseapp.com",
   projectId: "web-undangan-42f23",
-  storageBucket: "web-undangan-42f23.appspot.com", // Fixed Storage URL
+  storageBucket: "web-undangan-42f23.firebasestorage.app",
   messagingSenderId: "17080874518",
   appId: "1:17080874518:web:2d777ba3f7003e1b432737",
 };
@@ -42,6 +42,11 @@ app.use(bodyParser.json());
 // Multer setup for handling file uploads
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
+
+function convertImageToBase64(imagePath) {
+  const image = fs.readFileSync(imagePath);
+  return Buffer.from(image).toString("base64");
+}
 
 // Upload image to Firebase Storage
 const uploadImageToFirebase = async (file) => {
@@ -73,24 +78,30 @@ app.post("/invitations", async (req, res) => {
   }
 });
 
-// POST route for gallery upload
+// Modified POST route for gallery upload
 app.post("/uploadGallery", upload.single("image"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded." });
   }
+
   try {
-    const imageUrl = await uploadImageToFirebase(req.file);
+    // Convert image to Base64
+    const base64Image = req.file.buffer.toString("base64");
+    const imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
+
+    // Add the Base64 image to Firestore
     const docRef = await addDoc(collection(db, "imageGallery"), {
       imageUrl,
       timestamp: serverTimestamp(),
     });
+
     res.status(201).json({
       message: "Gallery Photo added successfully",
       id: docRef.id,
-      imageUrl,
+      imageUrl: imageUrl,
     });
   } catch (error) {
-    console.error("Error uploading image:", error);
+    console.error("Error adding document:", error);
     res.status(500).json({ message: "Failed to add Gallery Photo" });
   }
 });
