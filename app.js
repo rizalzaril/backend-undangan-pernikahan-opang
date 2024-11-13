@@ -14,12 +14,13 @@ const {
 const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
 
 const firebaseConfig = {
   apiKey: "AIzaSyBkA-g2xDMKxIjFAKm0rx7He0USiLI1Noc",
   authDomain: "web-undangan-42f23.firebaseapp.com",
   projectId: "web-undangan-42f23",
-  storageBucket: "web-undangan-42f23.firebasestorage.app",
+  storageBucket: "web-undangan-42f23.appspot.com",
   messagingSenderId: "17080874518",
   appId: "1:17080874518:web:2d777ba3f7003e1b432737",
 };
@@ -32,11 +33,26 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // Multer setup for handling file uploads with file type validation (png, jpg)
-const storage = multer.memoryStorage();
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    // Save uploaded files to the 'uploads' folder
+    const uploadDir = path.join(__dirname, "uploads");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir); // Create the folder if it doesn't exist
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    // Use the current timestamp to create a unique file name
+    const timestamp = Date.now();
+    const extname = path.extname(file.originalname);
+    cb(null, `${timestamp}_${file.originalname}`);
+  },
+});
+
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    // Only allow png and jpg files
     const allowedTypes = /png|jpg/;
     const extname = allowedTypes.test(
       path.extname(file.originalname).toLowerCase()
@@ -73,17 +89,15 @@ app.post("/invitations", async (req, res) => {
   }
 });
 
-// Modified POST route for gallery upload (storing only image URL/path as string)
+// POST route for gallery upload (storing image locally and saving URL to Firestore)
 app.post("/uploadGallery", upload.single("image"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded." });
   }
 
   try {
-    // Store only the image file path or URL as a string
-    const imagePath = `https://backend-undangan-pernikahan-opang.vercel.app/uploads/${Date.now()}_${
-      req.file.originalname
-    }`;
+    // Create image URL pointing to the uploaded file in 'uploads' folder
+    const imagePath = `https://backend-undangan-pernikahan-opang.vercel.app/uploads/${req.file.filename}`;
 
     // Add the image path to Firestore
     const docRef = await addDoc(collection(db, "imageGallery"), {
@@ -180,7 +194,7 @@ app.delete("/deleteGallery/:id", async (req, res) => {
   }
 });
 
-// Serve static files in uploads folder (you can put images here if needed)
+// Serve static files in uploads folder
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Start server
