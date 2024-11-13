@@ -95,6 +95,22 @@ app.post("/uploadGallery", upload.single("image"), async (req, res) => {
   }
 });
 
+//GET gallery image
+// GET all gallery images
+app.get("/getGallery", async (req, res) => {
+  try {
+    const snapshot = await getDocs(collection(db, "imageGallery"));
+    const images = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    res.status(200).json(images);
+  } catch (error) {
+    console.error("Error retrieving images:", error);
+    res.status(500).json({ message: "Failed to retrieve images" });
+  }
+});
+
 // GET all invitations
 app.get("/invitations", async (req, res) => {
   try {
