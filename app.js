@@ -33,7 +33,12 @@ const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp); // Firestore instance
 
 // Enable CORS for all origins (for development only)
-const allowedOrigin = "https://web-undangan-pernikahan-kappa.vercel.app";
+
+app.use(
+  cors({
+    origin: "https://web-undangan-pernikahan-kappa.vercel.app",
+  })
+);
 
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
