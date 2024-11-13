@@ -134,6 +134,33 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // POST gallery photo
+// app.post("/uploadGallery", upload.single("image"), async (req, res) => {
+//   console.log(req.body); // Log the body to ensure it's correct
+//   console.log(req.file); // Log the file to check if it's uploaded
+
+//   if (!req.file) {
+//     return res.status(400).json({ message: "No file uploaded." });
+//   }
+
+//   const imageUrl = `https://backend-undangan-pernikahan-opang.vercel.app/uploads/${req.file.filename}`;
+//   try {
+//     // Add the image URL to Firestore
+//     const docRef = await addDoc(collection(db, "imageGallery"), {
+//       imageUrl,
+//       timestamp: serverTimestamp(),
+//     });
+
+//     res.status(201).json({
+//       message: "Gallery Photo added successfully",
+//       id: docRef.id,
+//       imageUrl: imageUrl,
+//     });
+//   } catch (error) {
+//     console.error("Error adding document:", error);
+//     res.status(500).json({ message: "Failed to add Gallery Photo" });
+//   }
+// });
+
 app.post("/uploadGallery", upload.single("image"), async (req, res) => {
   console.log(req.body); // Log the body to ensure it's correct
   console.log(req.file); // Log the file to check if it's uploaded
@@ -142,8 +169,22 @@ app.post("/uploadGallery", upload.single("image"), async (req, res) => {
     return res.status(400).json({ message: "No file uploaded." });
   }
 
-  const imageUrl = `https://backend-undangan-pernikahan-opang.vercel.app/uploads/${req.file.filename}`;
   try {
+    // Set file destination path (inside public/uploads folder)
+    const uploadDir = path.join(__dirname, "public", "uploads");
+
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const filePath = path.join(uploadDir, req.file.filename);
+
+    // Move the file to the correct directory (for public access)
+    fs.renameSync(req.file.path, filePath);
+
+    // Create a URL for the image
+    const imageUrl = `https://backend-undangan-pernikahan-opang.vercel.app/uploads/${req.file.filename}`;
+
     // Add the image URL to Firestore
     const docRef = await addDoc(collection(db, "imageGallery"), {
       imageUrl,
