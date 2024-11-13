@@ -15,6 +15,7 @@ const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const cloudinary = require("cloudinary").v2;
 
 // Initialize Firebase (new modular SDK v9+)
 const firebaseConfig = {
@@ -25,6 +26,44 @@ const firebaseConfig = {
   messagingSenderId: "17080874518",
   appId: "1:17080874518:web:2d777ba3f7003e1b432737",
 };
+
+// Configure Cloudinary with your credentials
+cloudinary.config({
+  cloud_name: "djgr3hq5k",
+  api_key: "122714586646415",
+  api_secret: "utEKAi7kF1ExsyUxYtF7NJ_piRM",
+});
+
+const uploadFileToCloudinary = (filePath) => {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload(filePath, (error, result) => {
+      if (error) {
+        console.error("Upload failed:", error);
+        reject(error);
+      } else {
+        console.log("File uploaded successfully:", result.url);
+        resolve(result.url); // Resolve with the Cloudinary URL
+      }
+    });
+  });
+};
+
+// Configure multer storage
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = "uploads/";
+
+    // Ensure 'uploads' directory exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true }); // Create directory if doesn't exist
+    }
+    cb(null, uploadDir); // Define folder to store files
+  },
+  filename: function (req, file, cb) {
+    // Create a unique filename
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
 
 const app = express();
 
@@ -117,20 +156,6 @@ app.delete("/invitations/:id", async (req, res) => {
   }
 });
 
-// Upload Gallery Photo (file upload endpoint)
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = "uploads/";
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true }); // Create 'uploads' directory if it doesn't exist
-    }
-    cb(null, uploadDir); // Define folder to store files
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname)); // Unique filename
-  },
-});
-
 const upload = multer({ storage: storage });
 
 // POST gallery photo
@@ -161,29 +186,29 @@ const upload = multer({ storage: storage });
 //   }
 // });
 
-app.post("/uploadGallery", upload.single("image"), async (req, res) => {
-  console.log(req.body); // Log the body to ensure it's correct
-  console.log(req.file); // Log the file to check if it's uploaded
+// app.post("/uploadGallery", upload.single("file"), (req, res) => {
+//   if (req.file) {
+//     const filePath = path.join(__dirname, "uploads", req.file.filename);
 
+//     // Upload the file to Cloudinary after saving it locally
+//     uploadFileToCloudinary(filePath);
+
+//     res.send("File uploaded successfully!");
+//   } else {
+//     res.status(400).send("No file uploaded.");
+//   }
+// });
+
+app.post("/uploadGallery", upload.single("file"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded." });
   }
 
+  const filePath = path.join(__dirname, "uploads", req.file.filename);
+
   try {
-    // Set file destination path (inside public/uploads folder)
-    const uploadDir = path.join(__dirname, "public", "uploads");
-
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    const filePath = path.join(uploadDir, req.file.filename);
-
-    // Move the file to the correct directory (for public access)
-    fs.renameSync(req.file.path, filePath);
-
-    // Create a URL for the image
-    const imageUrl = `https://backend-undangan-pernikahan-opang.vercel.app/uploads/${req.file.filename}`;
+    // Upload to Cloudinary and get the URL
+    const imageUrl = await uploadFileToCloudinary(filePath);
 
     // Add the image URL to Firestore
     const docRef = await addDoc(collection(db, "imageGallery"), {
@@ -191,14 +216,20 @@ app.post("/uploadGallery", upload.single("image"), async (req, res) => {
       timestamp: serverTimestamp(),
     });
 
+    // Respond with success and the new document ID
     res.status(201).json({
       message: "Gallery Photo added successfully",
       id: docRef.id,
       imageUrl: imageUrl,
     });
   } catch (error) {
-    console.error("Error adding document:", error);
+    console.error("Error adding Gallery Photo:", error);
     res.status(500).json({ message: "Failed to add Gallery Photo" });
+  } finally {
+    // Optional: delete the local file after upload to Cloudinary
+    fs.unlink(filePath, (err) => {
+      if (err) console.error("Error deleting local file:", err);
+    });
   }
 });
 
