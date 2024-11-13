@@ -1,64 +1,41 @@
-// Required imports and configurations
 const express = require("express");
 const bodyParser = require("body-parser");
-const { initializeApp } = require("firebase/app");
-const {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  serverTimestamp,
-} = require("firebase/firestore");
+
+process.env.FIREBASE_DEBUG = "true"; // Enable Firebase Admin SDK debugging
+
 const admin = require("firebase-admin");
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount), // Path to your serviceAccountKey.json
-  });
-}
-
 const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const cloudinary = require("cloudinary");
 const {
-  getAuth,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-} = require("firebase/auth");
+  collection,
+  addDoc,
+  getDocs,
+  serverTimestamp,
+} = require("firebase/firestore");
+const serviceAccount = require("./serviceAccountKey.json"); // Replace with the actual path to your Firebase service account key
 
-// Firebase and Cloudinary configurations (use environment variables for security)
-const firebaseConfig = {
-  apiKey: "AIzaSyBkA-g2xDMKxIjFAKm0rx7He0USiLI1Noc",
-  authDomain: "web-undangan-42f23.firebaseapp.com",
-  projectId: "web-undangan-42f23",
-  storageBucket: "web-undangan-42f23.firebasestorage.app",
-  messagingSenderId: "17080874518",
-  appId: "1:17080874518:web:2d777ba3f7003e1b432737",
-};
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://web-undangan-42f23-default-rtdb.firebaseio.com", // pastikan URL ini sesuai dengan proyek Anda
+  });
+}
 
+const auth = admin.auth();
+const db = admin.firestore();
+
+// Cloudinary configuration
 cloudinary.v2.config({
-  cloud_name: "djgr3hq5k",
-  api_key: "122714586646415",
-  api_secret: "utEKAi7kF1ExsyUxYtF7NJ_piRM",
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Initialize Firebase
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp);
-const auth = getAuth();
-
-// Helper function to upload file to Cloudinary
-const uploadFileToCloudinary = (filePath) =>
-  new Promise((resolve, reject) => {
-    cloudinary.uploader.upload(filePath, (error, result) => {
-      if (error) reject(error);
-      else resolve(result.url);
-    });
-  });
-
-// Multer configuration
+// Multer configuration for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = "uploads/";
@@ -73,29 +50,22 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// User authentication route (login)
-app.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const userCredential = await signInWithEmailAndPassword(
-      auth,
-      email,
-      password
-    );
-    const token = await userCredential.user.getIdToken();
-    res.status(200).json({ token });
-  } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({ message: "Authentication failed" });
-  }
-});
+// Helper function to upload files to Cloudinary
+const uploadFileToCloudinary = (filePath) =>
+  new Promise((resolve, reject) => {
+    cloudinary.uploader.upload(filePath, (error, result) => {
+      if (error) reject(error);
+      else resolve(result.url);
+    });
+  });
 
 // User sign-up route
-// User sign-up route
+// Sign-up route using Firebase Admin SDK for creating a user
 app.post("/signup", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -104,27 +74,31 @@ app.post("/signup", async (req, res) => {
       .json({ message: "Email and password are required." });
   }
   try {
-    const userCredential = await createUserWithEmailAndPassword(
-      auth,
+    const userRecord = await admin.auth().createUser({
       email,
-      password
-    );
-    const token = await userCredential.user.getIdToken();
+      password,
+    });
+    const token = await admin.auth().createCustomToken(userRecord.uid);
     res.status(201).json({ message: "User created successfully", token });
   } catch (error) {
-    console.error("Sign-up error:", error.message);
-    if (error.code === "auth/email-already-in-use") {
-      return res.status(400).json({ message: "Email is already in use." });
-    }
-    if (error.code === "auth/invalid-email") {
-      return res.status(400).json({ message: "Invalid email format." });
-    }
-    if (error.code === "auth/weak-password") {
-      return res.status(400).json({ message: "Password is too weak." });
-    }
+    console.error("Sign-up error:", error);
     res
       .status(500)
       .json({ message: "User registration failed", error: error.message });
+  }
+});
+
+// User login route
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const userCredential = await auth.getUserByEmail(email); // Check if user exists
+    // Password authentication can be done here via custom token generation or another method
+    const token = await auth.createCustomToken(userCredential.uid);
+    res.status(200).json({ token });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Authentication failed" });
   }
 });
 
