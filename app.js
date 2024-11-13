@@ -2,6 +2,12 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const { initializeApp } = require("firebase/app");
 const {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+} = require("firebase/storage");
+const {
   getFirestore,
   collection,
   addDoc,
@@ -51,6 +57,14 @@ app.use(cors());
 
 //   next();
 // });
+
+const storageFs = getStorage();
+
+const uploadImageToFirebase = async (file) => {
+  const storageRef = ref(storageFs, `uploads/${file.filename}`);
+  await uploadBytes(storageRef, file);
+  return await getDownloadURL(storageRef);
+};
 
 app.use(bodyParser.json());
 
@@ -160,7 +174,11 @@ app.post("/uploadGallery", upload.single("image"), async (req, res) => {
     return res.status(400).json({ message: "No file uploaded." });
   }
 
-  const imageUrl = `https://backend-undangan-pernikahan-opang.vercel.app/uploads/${req.file.filename}`;
+  // const imageUrl = `https://backend-undangan-pernikahan-opang.vercel.app/uploads/${req.file.filename}`;
+  const imageUrl = req.file
+    ? `https://backend-undangan-pernikahan-opang.vercel.app/uploads/${req.file.filename}`
+    : "https://web-undangan-pernikahan-kappa.vercel.app/path/to/placeholder-image.jpg";
+
   try {
     // Add the image URL to Firestore
     const docRef = await addDoc(collection(db, "imageGallery"), {
