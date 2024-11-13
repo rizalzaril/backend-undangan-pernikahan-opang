@@ -1,7 +1,8 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const { initializeApp } = require("firebase/app");
-const {
+// Required imports and configurations
+import express from "express";
+import bodyParser from "body-parser";
+import { initializeApp } from "firebase/app";
+import {
   getFirestore,
   collection,
   addDoc,
@@ -9,100 +10,103 @@ const {
   doc,
   updateDoc,
   deleteDoc,
+  getDoc,
   serverTimestamp,
-} = require("firebase/firestore");
-const cors = require("cors");
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
-const cloudinary = require("cloudinary").v2;
+} from "firebase/firestore";
+import cors from "cors";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import cloudinary from "cloudinary";
 
-// Initialize Firebase (new modular SDK v9+)
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+
+// Firebase and Cloudinary configurations (use environment variables for security)
 const firebaseConfig = {
-  apiKey: "AIzaSyBkA-g2xDMKxIjFAKm0rx7He0USiLI1Noc",
-  authDomain: "web-undangan-42f23.firebaseapp.com",
-  projectId: "web-undangan-42f23",
-  storageBucket: "web-undangan-42f23.firebasestorage.app",
-  messagingSenderId: "17080874518",
-  appId: "1:17080874518:web:2d777ba3f7003e1b432737",
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
 };
 
-// Configure Cloudinary with your credentials
-cloudinary.config({
-  cloud_name: "djgr3hq5k",
-  api_key: "122714586646415",
-  api_secret: "utEKAi7kF1ExsyUxYtF7NJ_piRM",
+cloudinary.v2.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const uploadFileToCloudinary = (filePath) => {
-  return new Promise((resolve, reject) => {
+// Initialize Firebase
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+const auth = getAuth();
+
+// Helper function to upload file to Cloudinary
+const uploadFileToCloudinary = (filePath) =>
+  new Promise((resolve, reject) => {
     cloudinary.uploader.upload(filePath, (error, result) => {
-      if (error) {
-        console.error("Upload failed:", error);
-        reject(error);
-      } else {
-        console.log("File uploaded successfully:", result.url);
-        resolve(result.url); // Resolve with the Cloudinary URL
-      }
+      if (error) reject(error);
+      else resolve(result.url);
     });
   });
-};
 
-// Configure multer storage
+// Multer configuration
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
+  destination: (req, file, cb) => {
     const uploadDir = "uploads/";
-
-    // Ensure 'uploads' directory exists
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true }); // Create directory if doesn't exist
-    }
-    cb(null, uploadDir); // Define folder to store files
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+    cb(null, uploadDir);
   },
-  filename: function (req, file, cb) {
-    // Create a unique filename
+  filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname));
   },
 });
 
+const upload = multer({ storage });
 const app = express();
 
-// Initialize Firebase app
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp); // Firestore instance
-
 app.use(cors());
-
 app.use(bodyParser.json());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Create: Add invitation data to Firestore
+// User authentication route
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    const token = await userCredential.user.getIdToken();
+    res.status(200).json({ token });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Authentication failed" });
+  }
+});
+
+// CRUD endpoints for invitations
 app.post("/invitations", async (req, res) => {
   const { nama, status, pesan } = req.body;
-
-  // Check if all fields are provided
-  if (!nama || !status || !pesan) {
+  if (!nama || !status || !pesan)
     return res.status(400).json({ message: "All fields are required." });
-  }
 
   try {
-    // Add the invitation to Firestore
     const docRef = await addDoc(collection(db, "invitations"), {
       nama,
       status,
       pesan,
       timestamp: serverTimestamp(),
     });
-
-    res
-      .status(201)
-      .json({ message: "Invitation added successfully", id: docRef.id });
+    res.status(201).json({ message: "Invitation added", id: docRef.id });
   } catch (error) {
-    console.error("Error adding document:", error);
+    console.error("Error adding invitation:", error);
     res.status(500).json({ message: "Failed to add invitation" });
   }
 });
 
-// Read: Get all invitations from Firestore
 app.get("/invitations", async (req, res) => {
   try {
     const snapshot = await getDocs(collection(db, "invitations"));
@@ -117,175 +121,40 @@ app.get("/invitations", async (req, res) => {
   }
 });
 
-// Update: Update an invitation's status and message
-app.put("/invitations/:id", async (req, res) => {
-  const { id } = req.params;
-  const { status, pesan } = req.body;
-
-  if (!status || !pesan) {
-    return res
-      .status(400)
-      .json({ message: "Status and message are required." });
-  }
-
-  try {
-    const docRef = doc(db, "invitations", id);
-    await updateDoc(docRef, {
-      status,
-      pesan,
-      timestamp: serverTimestamp(),
-    });
-    res.status(200).json({ message: "Invitation updated successfully" });
-  } catch (error) {
-    console.error("Error updating document:", error);
-    res.status(500).json({ message: "Failed to update invitation" });
-  }
-});
-
-// Delete: Remove an invitation from Firestore
-app.delete("/invitations/:id", async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const docRef = doc(db, "invitations", id);
-    await deleteDoc(docRef);
-    res.status(200).json({ message: "Invitation deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting document:", error);
-    res.status(500).json({ message: "Failed to delete invitation" });
-  }
-});
-
-const upload = multer({ storage: storage });
-
-// POST gallery photo
-// app.post("/uploadGallery", upload.single("image"), async (req, res) => {
-//   console.log(req.body); // Log the body to ensure it's correct
-//   console.log(req.file); // Log the file to check if it's uploaded
-
-//   if (!req.file) {
-//     return res.status(400).json({ message: "No file uploaded." });
-//   }
-
-//   const imageUrl = `https://backend-undangan-pernikahan-opang.vercel.app/uploads/${req.file.filename}`;
-//   try {
-//     // Add the image URL to Firestore
-//     const docRef = await addDoc(collection(db, "imageGallery"), {
-//       imageUrl,
-//       timestamp: serverTimestamp(),
-//     });
-
-//     res.status(201).json({
-//       message: "Gallery Photo added successfully",
-//       id: docRef.id,
-//       imageUrl: imageUrl,
-//     });
-//   } catch (error) {
-//     console.error("Error adding document:", error);
-//     res.status(500).json({ message: "Failed to add Gallery Photo" });
-//   }
-// });
-
-// app.post("/uploadGallery", upload.single("file"), (req, res) => {
-//   if (req.file) {
-//     const filePath = path.join(__dirname, "uploads", req.file.filename);
-
-//     // Upload the file to Cloudinary after saving it locally
-//     uploadFileToCloudinary(filePath);
-
-//     res.send("File uploaded successfully!");
-//   } else {
-//     res.status(400).send("No file uploaded.");
-//   }
-// });
-
+// Upload and retrieve gallery images
 app.post("/uploadGallery", upload.single("file"), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: "No file uploaded." });
-  }
+  if (!req.file) return res.status(400).json({ message: "No file uploaded." });
 
   const filePath = path.join(__dirname, "uploads", req.file.filename);
-
   try {
-    // Upload to Cloudinary and get the URL
     const imageUrl = await uploadFileToCloudinary(filePath);
-
-    // Add the image URL to Firestore
     const docRef = await addDoc(collection(db, "imageGallery"), {
       imageUrl,
       timestamp: serverTimestamp(),
     });
-
-    // Respond with success and the new document ID
-    res.status(201).json({
-      message: "Gallery Photo added successfully",
-      id: docRef.id,
-      imageUrl: imageUrl,
-    });
+    res
+      .status(201)
+      .json({ message: "Gallery Photo added", id: docRef.id, imageUrl });
   } catch (error) {
     console.error("Error adding Gallery Photo:", error);
     res.status(500).json({ message: "Failed to add Gallery Photo" });
   } finally {
-    // Optional: delete the local file after upload to Cloudinary
     fs.unlink(filePath, (err) => {
-      if (err) console.error("Error deleting local file:", err);
+      if (err) console.error("Error deleting file:", err);
     });
   }
 });
 
-// GET gallery images
 app.get("/getGallery", async (req, res) => {
   try {
     const snapshot = await getDocs(collection(db, "imageGallery"));
-    const images = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      imageUrl: doc.data().imageUrl,
-      timestamp: doc.data().timestamp,
-    }));
+    const images = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     res.status(200).json(images);
   } catch (error) {
     console.error("Error retrieving images:", error);
     res.status(500).json({ message: "Failed to retrieve images" });
   }
 });
-
-// Delete image route
-app.delete("/deleteGallery/:id", async (req, res) => {
-  const imageId = req.params.id;
-
-  try {
-    const docRef = doc(db, "imageGallery", imageId);
-    const docSnap = await docRef.get();
-
-    if (!docSnap.exists()) {
-      return res.status(404).json({ message: "Image not found" });
-    }
-
-    const imageUrl = docSnap.data().imageUrl;
-    const fileName = imageUrl.split("/").pop(); // Get the file name from URL
-
-    const filePath = path.join(__dirname, "uploads", fileName);
-
-    fs.unlink(filePath, (err) => {
-      if (err) {
-        console.error("Error deleting the file:", err);
-        return res
-          .status(500)
-          .json({ message: "Failed to delete image from server" });
-      }
-    });
-
-    await deleteDoc(docRef);
-
-    res.status(200).json({ message: "Gallery Photo deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting document:", error);
-    res.status(500).json({ message: "Failed to delete Gallery Photo" });
-  }
-});
-
-// Serve uploaded files statically
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Start server
 const PORT = process.env.PORT || 5000;
