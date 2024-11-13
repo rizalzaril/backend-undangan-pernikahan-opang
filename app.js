@@ -35,7 +35,9 @@ const db = getFirestore(firebaseApp); // Firestore instance
 // Enable CORS for all origins (for development only)
 app.use(
   cors({
-    origin: "https://web-undangan-pernikahan-kappa.vercel.app", // or "*" to allow all origins
+    origin: "https://web-undangan-pernikahan-kappa.vercel.app", // Change this to your frontend domain
+    methods: ["GET", "POST", "PUT", "DELETE"], // Allow these methods
+    allowedHeaders: ["Content-Type"], // Allow headers like 'Content-Type'
   })
 );
 app.use(bodyParser.json());
@@ -137,8 +139,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-//post gallery
-
+// POST gallery photo
 app.post("/uploadGallery", upload.single("image"), async (req, res) => {
   console.log(req.body); // Log the body to ensure it's correct
   console.log(req.file); // Log the file to check if it's uploaded
@@ -166,7 +167,7 @@ app.post("/uploadGallery", upload.single("image"), async (req, res) => {
   }
 });
 
-//get imgGallery
+// GET gallery images
 app.get("/getGallery", async (req, res) => {
   try {
     const snapshot = await getDocs(collection(db, "imageGallery"));
