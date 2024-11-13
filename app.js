@@ -146,7 +146,7 @@ app.post("/uploadGallery", upload.single("image"), async (req, res) => {
     return res.status(400).json({ message: "No file uploaded." });
   }
 
-  const imageUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+  const imageUrl = `https://backend-undangan-pernikahan-opang.vercel.app/uploads/${req.file.filename}`;
   try {
     // Add the image URL to Firestore
     const docRef = await addDoc(collection(db, "imageGallery"), {
