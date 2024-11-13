@@ -9,13 +9,28 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const cloudinary = require("cloudinary");
+const { initializeApp } = require("firebase/app");
 const {
+  getFirestore,
   collection,
   addDoc,
   getDocs,
   serverTimestamp,
 } = require("firebase/firestore");
 const serviceAccount = require("./serviceAccountKey.json"); // Replace with the actual path to your Firebase service account key
+
+// Initialize Firebase (new modular SDK v9+)
+const firebaseConfig = {
+  apiKey: "AIzaSyBkA-g2xDMKxIjFAKm0rx7He0USiLI1Noc",
+  authDomain: "web-undangan-42f23.firebaseapp.com",
+  projectId: "web-undangan-42f23",
+  storageBucket: "web-undangan-42f23.firebasestorage.app",
+  messagingSenderId: "17080874518",
+  appId: "1:17080874518:web:2d777ba3f7003e1b432737",
+};
+
+// Initialize Firebase app
+const firebaseApp = initializeApp(firebaseConfig);
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
@@ -27,6 +42,7 @@ if (!admin.apps.length) {
 
 const auth = admin.auth();
 const db = admin.firestore();
+const db2 = getFirestore(firebaseApp); // Firestore instance
 
 // Cloudinary configuration
 cloudinary.v2.config({
@@ -109,7 +125,7 @@ app.post("/invitations", async (req, res) => {
     return res.status(400).json({ message: "All fields are required." });
 
   try {
-    const docRef = await addDoc(collection(db, "invitations"), {
+    const docRef = await addDoc(collection(db2, "invitations"), {
       nama,
       status,
       pesan,
@@ -124,7 +140,7 @@ app.post("/invitations", async (req, res) => {
 
 app.get("/invitations", async (req, res) => {
   try {
-    const snapshot = await getDocs(collection(db, "invitations"));
+    const snapshot = await getDocs(collection(db2, "invitations"));
     const invitations = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
