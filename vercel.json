@@ -2,14 +2,19 @@
   "version": 2,
   "builds": [
     {
-      "src": "app.js",
+      "src": "api/**/*.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/app.js"
+      "headers": {
+        "Access-Control-Allow-Origin": "https://web-undangan-pernikahan-kappa.vercel.app",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+      },
+      "dest": "/api/$1"
     }
   ]
 }

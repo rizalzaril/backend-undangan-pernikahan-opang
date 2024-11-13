@@ -33,13 +33,8 @@ const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp); // Firestore instance
 
 // Enable CORS for all origins (for development only)
-app.use(
-  cors({
-    origin: "https://web-undangan-pernikahan-kappa.vercel.app", // Change this to your frontend domain
-    methods: ["GET", "POST", "PUT", "DELETE"], // Allow these methods
-    allowedHeaders: ["Content-Type"], // Allow headers like 'Content-Type'
-  })
-);
+app.use(cors({ origin: "*" }));
+
 app.use(bodyParser.json());
 
 // Create: Add invitation data to Firestore
