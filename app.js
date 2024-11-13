@@ -179,7 +179,7 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
 
 app.get("/getGallery", async (req, res) => {
   try {
-    const snapshot = await getDocs(collection(db, "imageGallery"));
+    const snapshot = await getDocs(collection(db2, "imageGallery"));
     const images = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     res.status(200).json(images);
   } catch (error) {
