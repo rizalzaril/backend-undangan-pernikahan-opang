@@ -16,70 +16,61 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
+// Initialize Firebase (new modular SDK v9+)
 const firebaseConfig = {
   apiKey: "AIzaSyBkA-g2xDMKxIjFAKm0rx7He0USiLI1Noc",
   authDomain: "web-undangan-42f23.firebaseapp.com",
   projectId: "web-undangan-42f23",
-  storageBucket: "web-undangan-42f23.appspot.com",
+  storageBucket: "web-undangan-42f23.firebasestorage.app",
   messagingSenderId: "17080874518",
   appId: "1:17080874518:web:2d777ba3f7003e1b432737",
 };
 
 const app = express();
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp);
 
-app.use(cors());
+// Initialize Firebase app
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp); // Firestore instance
+
+// Enable CORS for all origins (for development only)
+const allowedOrigin = "https://web-undangan-pernikahan-kappa.vercel.app";
+
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  // Handle OPTIONS preflight requests
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  next();
+});
+
 app.use(bodyParser.json());
 
-// Multer setup for handling file uploads with file type validation (png, jpg)
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Save uploaded files to the 'uploads' folder
-    const uploadDir = path.join(__dirname, "uploads");
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir); // Create the folder if it doesn't exist
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    // Use the current timestamp to create a unique file name
-    const timestamp = Date.now();
-    const extname = path.extname(file.originalname);
-    cb(null, `${timestamp}_${file.originalname}`);
-  },
-});
-
-const upload = multer({
-  storage,
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /png|jpg/;
-    const extname = allowedTypes.test(
-      path.extname(file.originalname).toLowerCase()
-    );
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (extname && mimetype) {
-      return cb(null, true);
-    } else {
-      return cb(new Error("Only .png and .jpg files are allowed"), false);
-    }
-  },
-});
-
-// POST route for adding invitations
+// Create: Add invitation data to Firestore
 app.post("/invitations", async (req, res) => {
   const { nama, status, pesan } = req.body;
+
+  // Check if all fields are provided
   if (!nama || !status || !pesan) {
     return res.status(400).json({ message: "All fields are required." });
   }
+
   try {
+    // Add the invitation to Firestore
     const docRef = await addDoc(collection(db, "invitations"), {
       nama,
       status,
       pesan,
       timestamp: serverTimestamp(),
     });
+
     res
       .status(201)
       .json({ message: "Invitation added successfully", id: docRef.id });
@@ -89,49 +80,7 @@ app.post("/invitations", async (req, res) => {
   }
 });
 
-// POST route for gallery upload (storing image locally and saving URL to Firestore)
-app.post("/uploadGallery", upload.single("image"), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: "No file uploaded." });
-  }
-
-  try {
-    // Create image URL pointing to the uploaded file in 'uploads' folder
-    const imagePath = `https://backend-undangan-pernikahan-opang.vercel.app/uploads/${req.file.filename}`;
-
-    // Add the image path to Firestore
-    const docRef = await addDoc(collection(db, "imageGallery"), {
-      imagePath,
-      timestamp: serverTimestamp(),
-    });
-
-    res.status(201).json({
-      message: "Gallery Photo added successfully",
-      id: docRef.id,
-      imagePath: imagePath,
-    });
-  } catch (error) {
-    console.error("Error adding document:", error);
-    res.status(500).json({ message: "Failed to add Gallery Photo" });
-  }
-});
-
-// GET all gallery images
-app.get("/getGallery", async (req, res) => {
-  try {
-    const snapshot = await getDocs(collection(db, "imageGallery"));
-    const images = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-    res.status(200).json(images);
-  } catch (error) {
-    console.error("Error retrieving images:", error);
-    res.status(500).json({ message: "Failed to retrieve images" });
-  }
-});
-
-// GET all invitations
+// Read: Get all invitations from Firestore
 app.get("/invitations", async (req, res) => {
   try {
     const snapshot = await getDocs(collection(db, "invitations"));
@@ -146,15 +95,17 @@ app.get("/invitations", async (req, res) => {
   }
 });
 
-// Update invitation
+// Update: Update an invitation's status and message
 app.put("/invitations/:id", async (req, res) => {
   const { id } = req.params;
   const { status, pesan } = req.body;
+
   if (!status || !pesan) {
     return res
       .status(400)
       .json({ message: "Status and message are required." });
   }
+
   try {
     const docRef = doc(db, "invitations", id);
     await updateDoc(docRef, {
@@ -169,11 +120,13 @@ app.put("/invitations/:id", async (req, res) => {
   }
 });
 
-// Delete invitation
+// Delete: Remove an invitation from Firestore
 app.delete("/invitations/:id", async (req, res) => {
   const { id } = req.params;
+
   try {
-    await deleteDoc(doc(db, "invitations", id));
+    const docRef = doc(db, "invitations", id);
+    await deleteDoc(docRef);
     res.status(200).json({ message: "Invitation deleted successfully" });
   } catch (error) {
     console.error("Error deleting document:", error);
@@ -181,12 +134,94 @@ app.delete("/invitations/:id", async (req, res) => {
   }
 });
 
-// Delete gallery photo
-app.delete("/deleteGallery/:id", async (req, res) => {
-  const { id } = req.params;
+// Upload Gallery Photo (file upload endpoint)
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = "uploads/";
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true }); // Create 'uploads' directory if it doesn't exist
+    }
+    cb(null, uploadDir); // Define folder to store files
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname)); // Unique filename
+  },
+});
+
+const upload = multer({ storage: storage });
+
+// POST gallery photo
+app.post("/uploadGallery", upload.single("image"), async (req, res) => {
+  console.log(req.body); // Log the body to ensure it's correct
+  console.log(req.file); // Log the file to check if it's uploaded
+
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded." });
+  }
+
+  const imageUrl = `https://backend-undangan-pernikahan-opang.vercel.app/uploads/${req.file.filename}`;
   try {
-    const docRef = doc(db, "imageGallery", id);
-    await deleteDoc(docRef); // Simply delete the document from Firestore
+    // Add the image URL to Firestore
+    const docRef = await addDoc(collection(db, "imageGallery"), {
+      imageUrl,
+      timestamp: serverTimestamp(),
+    });
+
+    res.status(201).json({
+      message: "Gallery Photo added successfully",
+      id: docRef.id,
+      imageUrl: imageUrl,
+    });
+  } catch (error) {
+    console.error("Error adding document:", error);
+    res.status(500).json({ message: "Failed to add Gallery Photo" });
+  }
+});
+
+// GET gallery images
+app.get("/getGallery", async (req, res) => {
+  try {
+    const snapshot = await getDocs(collection(db, "imageGallery"));
+    const images = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      imageUrl: doc.data().imageUrl,
+      timestamp: doc.data().timestamp,
+    }));
+    res.status(200).json(images);
+  } catch (error) {
+    console.error("Error retrieving images:", error);
+    res.status(500).json({ message: "Failed to retrieve images" });
+  }
+});
+
+// Delete image route
+app.delete("/deleteGallery/:id", async (req, res) => {
+  const imageId = req.params.id;
+
+  try {
+    const docRef = doc(db, "imageGallery", imageId);
+    const docSnap = await docRef.get();
+
+    if (!docSnap.exists()) {
+      return res.status(404).json({ message: "Image not found" });
+    }
+
+    const imageUrl = docSnap.data().imageUrl;
+    const fileName = imageUrl.split("/").pop(); // Get the file name from URL
+
+    const filePath = path.join(__dirname, "uploads", fileName);
+
+    fs.unlink(filePath, (err) => {
+      if (err) {
+        console.error("Error deleting the file:", err);
+        return res
+          .status(500)
+          .json({ message: "Failed to delete image from server" });
+      }
+    });
+
+    await deleteDoc(docRef);
+
     res.status(200).json({ message: "Gallery Photo deleted successfully" });
   } catch (error) {
     console.error("Error deleting document:", error);
@@ -194,7 +229,7 @@ app.delete("/deleteGallery/:id", async (req, res) => {
   }
 });
 
-// Serve static files in uploads folder
+// Serve uploaded files statically
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Start server
