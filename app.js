@@ -2,13 +2,6 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const { initializeApp } = require("firebase/app");
 const {
-  getStorage,
-  ref,
-  uploadBytes,
-  getDownloadURL,
-  deleteObject,
-} = require("firebase/storage");
-const {
   getFirestore,
   collection,
   addDoc,
@@ -34,27 +27,29 @@ const firebaseConfig = {
 const app = express();
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
-const storageFs = getStorage(firebaseApp);
 
 app.use(cors());
 app.use(bodyParser.json());
 
-// Multer setup for handling file uploads
+// Multer setup for handling file uploads with file type validation (png, jpg)
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    // Only allow png and jpg files
+    const allowedTypes = /png|jpg/;
+    const extname = allowedTypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
+    const mimetype = allowedTypes.test(file.mimetype);
 
-function convertImageToBase64(imagePath) {
-  const image = fs.readFileSync(imagePath);
-  return Buffer.from(image).toString("base64");
-}
-
-// Upload image to Firebase Storage
-const uploadImageToFirebase = async (file) => {
-  const fileName = `uploads/${Date.now()}_${file.originalname}`;
-  const storageRef = ref(storageFs, fileName);
-  await uploadBytes(storageRef, file.buffer);
-  return await getDownloadURL(storageRef);
-};
+    if (extname && mimetype) {
+      return cb(null, true);
+    } else {
+      return cb(new Error("Only .png and .jpg files are allowed"), false);
+    }
+  },
+});
 
 // POST route for adding invitations
 app.post("/invitations", async (req, res) => {
@@ -78,27 +73,26 @@ app.post("/invitations", async (req, res) => {
   }
 });
 
-// Modified POST route for gallery upload
+// Modified POST route for gallery upload (storing only image URL/path as string)
 app.post("/uploadGallery", upload.single("image"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded." });
   }
 
   try {
-    // Convert image to Base64
-    const base64Image = req.file.buffer.toString("base64");
-    const imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
+    // Store only the image file path or URL as a string
+    const imagePath = `uploads/${Date.now()}_${req.file.originalname}`;
 
-    // Add the Base64 image to Firestore
+    // Add the image path to Firestore
     const docRef = await addDoc(collection(db, "imageGallery"), {
-      imageUrl,
+      imagePath,
       timestamp: serverTimestamp(),
     });
 
     res.status(201).json({
       message: "Gallery Photo added successfully",
       id: docRef.id,
-      imageUrl: imageUrl,
+      imagePath: imagePath,
     });
   } catch (error) {
     console.error("Error adding document:", error);
@@ -106,7 +100,6 @@ app.post("/uploadGallery", upload.single("image"), async (req, res) => {
   }
 });
 
-//GET gallery image
 // GET all gallery images
 app.get("/getGallery", async (req, res) => {
   try {
@@ -177,17 +170,7 @@ app.delete("/deleteGallery/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const docRef = doc(db, "imageGallery", id);
-    const docSnap = await getDocs(docRef);
-    if (!docSnap.exists()) {
-      return res.status(404).json({ message: "Image not found" });
-    }
-
-    const { imageUrl } = docSnap.data();
-    const fileName = imageUrl.split("/").pop(); // Get Firebase file reference
-    const fileRef = ref(storageFs, `uploads/${fileName}`);
-    await deleteObject(fileRef); // Delete image from Firebase Storage
-    await deleteDoc(docRef); // Delete document from Firestore
-
+    await deleteDoc(docRef); // Simply delete the document from Firestore
     res.status(200).json({ message: "Gallery Photo deleted successfully" });
   } catch (error) {
     console.error("Error deleting document:", error);
@@ -195,7 +178,7 @@ app.delete("/deleteGallery/:id", async (req, res) => {
   }
 });
 
-// Serve static files in uploads folder
+// Serve static files in uploads folder (you can put images here if needed)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Start server
