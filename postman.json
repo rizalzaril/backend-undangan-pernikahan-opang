@@ -1,0 +1,35 @@
+{
+  "info": {
+    "_postman_id": "c9b3b118-5f23-4be3-abc3-cc02c0644da4",
+    "name": "Login API Test",
+    "description": "Testing the login API for authentication"
+  },
+  "item": [
+    {
+      "name": "Login Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"user@example.com\",\"password\":\"your_password\"}"
+        },
+        "url": {
+          "raw": "https://backend-wedding-nlwvn10xj-rizalzarils-projects.vercel.app/login",
+          "protocol": "https",
+          "host": [
+            "backend-wedding-nlwvn10xj-rizalzarils-projects",
+            "vercel",
+            "app"
+          ],
+          "path": ["login"]
+        }
+      }
+    }
+  ]
+}

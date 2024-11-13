@@ -82,6 +82,25 @@ const db = admin.firestore();
 app.use(cors());
 app.use(bodyParser.json());
 
+// AUTH TOKEN ///
+const authenticateToken = async (req, res, next) => {
+  const token = req.headers["authorization"]?.split(" ")[1]; // Get token from "Bearer <token>"
+
+  if (!token) {
+    return res.status(403).json({ message: "No token provided" });
+  }
+
+  try {
+    // Verify the custom token and get user data
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    req.user = decodedToken; // Store user data in the request object
+    next(); // Proceed to the next middleware or route handler
+  } catch (error) {
+    console.error("Token verification error:", error);
+    res.status(403).json({ message: "Invalid or expired token" });
+  }
+};
+
 // ************************************************ ROUTE SCRIPT *******************************************************\\
 
 // User sign-up route
@@ -230,7 +249,7 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
 });
 
 // GET gallery images
-app.get("/getGallery", async (req, res) => {
+app.get("/getGallery", authenticateToken, async (req, res) => {
   try {
     const snapshot = await getDocs(collection(dbLocale, "imageGallery"));
     const images = snapshot.docs.map((doc) => ({
