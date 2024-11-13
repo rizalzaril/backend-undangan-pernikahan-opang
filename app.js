@@ -81,7 +81,7 @@ app.post("/uploadGallery", upload.single("image"), async (req, res) => {
 
   try {
     // Store only the image file path or URL as a string
-    const imagePath = `https://backend-undangan-pernikahan-opang.vercel.app//uploads/${Date.now()}_${
+    const imagePath = `https://backend-undangan-pernikahan-opang.vercel.app/uploads/${Date.now()}_${
       req.file.originalname
     }`;
 
