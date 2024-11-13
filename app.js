@@ -1,40 +1,47 @@
 // Required imports and configurations
-import express from "express";
-import bodyParser from "body-parser";
-import { initializeApp } from "firebase/app";
-import {
+const express = require("express");
+const bodyParser = require("body-parser");
+const { initializeApp } = require("firebase/app");
+const {
   getFirestore,
   collection,
   addDoc,
   getDocs,
-  doc,
-  updateDoc,
-  deleteDoc,
-  getDoc,
   serverTimestamp,
-} from "firebase/firestore";
-import cors from "cors";
-import multer from "multer";
-import path from "path";
-import fs from "fs";
-import cloudinary from "cloudinary";
+} = require("firebase/firestore");
+const admin = require("firebase-admin");
 
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount), // Path to your serviceAccountKey.json
+  });
+}
+
+const cors = require("cors");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const cloudinary = require("cloudinary");
+const {
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+} = require("firebase/auth");
 
 // Firebase and Cloudinary configurations (use environment variables for security)
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.FIREBASE_APP_ID,
+  apiKey: "AIzaSyBkA-g2xDMKxIjFAKm0rx7He0USiLI1Noc",
+  authDomain: "web-undangan-42f23.firebaseapp.com",
+  projectId: "web-undangan-42f23",
+  storageBucket: "web-undangan-42f23.firebasestorage.app",
+  messagingSenderId: "17080874518",
+  appId: "1:17080874518:web:2d777ba3f7003e1b432737",
 };
 
 cloudinary.v2.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: "djgr3hq5k",
+  api_key: "122714586646415",
+  api_secret: "utEKAi7kF1ExsyUxYtF7NJ_piRM",
 });
 
 // Initialize Firebase
@@ -70,7 +77,7 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// User authentication route
+// User authentication route (login)
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -84,6 +91,40 @@ app.post("/login", async (req, res) => {
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Authentication failed" });
+  }
+});
+
+// User sign-up route
+// User sign-up route
+app.post("/signup", async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res
+      .status(400)
+      .json({ message: "Email and password are required." });
+  }
+  try {
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    const token = await userCredential.user.getIdToken();
+    res.status(201).json({ message: "User created successfully", token });
+  } catch (error) {
+    console.error("Sign-up error:", error.message);
+    if (error.code === "auth/email-already-in-use") {
+      return res.status(400).json({ message: "Email is already in use." });
+    }
+    if (error.code === "auth/invalid-email") {
+      return res.status(400).json({ message: "Invalid email format." });
+    }
+    if (error.code === "auth/weak-password") {
+      return res.status(400).json({ message: "Password is too weak." });
+    }
+    res
+      .status(500)
+      .json({ message: "User registration failed", error: error.message });
   }
 });
 
@@ -139,6 +180,7 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
     console.error("Error adding Gallery Photo:", error);
     res.status(500).json({ message: "Failed to add Gallery Photo" });
   } finally {
+    // Ensure file is deleted after upload
     fs.unlink(filePath, (err) => {
       if (err) console.error("Error deleting file:", err);
     });
