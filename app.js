@@ -6,6 +6,7 @@ const {
   ref,
   uploadBytes,
   getDownloadURL,
+  deleteObject,
 } = require("firebase/storage");
 const {
   getFirestore,
@@ -20,72 +21,49 @@ const {
 const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
-const fs = require("fs");
 
-// Initialize Firebase (new modular SDK v9+)
 const firebaseConfig = {
   apiKey: "AIzaSyBkA-g2xDMKxIjFAKm0rx7He0USiLI1Noc",
   authDomain: "web-undangan-42f23.firebaseapp.com",
   projectId: "web-undangan-42f23",
-  storageBucket: "web-undangan-42f23.firebasestorage.app",
+  storageBucket: "web-undangan-42f23.appspot.com", // Fixed Storage URL
   messagingSenderId: "17080874518",
   appId: "1:17080874518:web:2d777ba3f7003e1b432737",
 };
 
 const app = express();
-
-// Initialize Firebase app
 const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp); // Firestore instance
-
-// Enable CORS for all origins (for development only)
+const db = getFirestore(firebaseApp);
+const storageFs = getStorage(firebaseApp);
 
 app.use(cors());
+app.use(bodyParser.json());
 
-// app.use((req, res, next) => {
-//   res.setHeader("Access-Control-Allow-Origin", origin);
-//   res.setHeader(
-//     "Access-Control-Allow-Methods",
-//     "GET, POST, PUT, DELETE, OPTIONS"
-//   );
-//   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+// Multer setup for handling file uploads
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
-//   // Handle OPTIONS preflight requests
-//   if (req.method === "OPTIONS") {
-//     return res.status(200).end();
-//   }
-
-//   next();
-// });
-
-const storageFs = getStorage();
-
+// Upload image to Firebase Storage
 const uploadImageToFirebase = async (file) => {
-  const storageRef = ref(storageFs, `uploads/${file.filename}`);
-  await uploadBytes(storageRef, file);
+  const fileName = `uploads/${Date.now()}_${file.originalname}`;
+  const storageRef = ref(storageFs, fileName);
+  await uploadBytes(storageRef, file.buffer);
   return await getDownloadURL(storageRef);
 };
 
-app.use(bodyParser.json());
-
-// Create: Add invitation data to Firestore
+// POST route for adding invitations
 app.post("/invitations", async (req, res) => {
   const { nama, status, pesan } = req.body;
-
-  // Check if all fields are provided
   if (!nama || !status || !pesan) {
     return res.status(400).json({ message: "All fields are required." });
   }
-
   try {
-    // Add the invitation to Firestore
     const docRef = await addDoc(collection(db, "invitations"), {
       nama,
       status,
       pesan,
       timestamp: serverTimestamp(),
     });
-
     res
       .status(201)
       .json({ message: "Invitation added successfully", id: docRef.id });
@@ -95,7 +73,29 @@ app.post("/invitations", async (req, res) => {
   }
 });
 
-// Read: Get all invitations from Firestore
+// POST route for gallery upload
+app.post("/uploadGallery", upload.single("image"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded." });
+  }
+  try {
+    const imageUrl = await uploadImageToFirebase(req.file);
+    const docRef = await addDoc(collection(db, "imageGallery"), {
+      imageUrl,
+      timestamp: serverTimestamp(),
+    });
+    res.status(201).json({
+      message: "Gallery Photo added successfully",
+      id: docRef.id,
+      imageUrl,
+    });
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    res.status(500).json({ message: "Failed to add Gallery Photo" });
+  }
+});
+
+// GET all invitations
 app.get("/invitations", async (req, res) => {
   try {
     const snapshot = await getDocs(collection(db, "invitations"));
@@ -110,17 +110,15 @@ app.get("/invitations", async (req, res) => {
   }
 });
 
-// Update: Update an invitation's status and message
+// Update invitation
 app.put("/invitations/:id", async (req, res) => {
   const { id } = req.params;
   const { status, pesan } = req.body;
-
   if (!status || !pesan) {
     return res
       .status(400)
       .json({ message: "Status and message are required." });
   }
-
   try {
     const docRef = doc(db, "invitations", id);
     await updateDoc(docRef, {
@@ -135,13 +133,11 @@ app.put("/invitations/:id", async (req, res) => {
   }
 });
 
-// Delete: Remove an invitation from Firestore
+// Delete invitation
 app.delete("/invitations/:id", async (req, res) => {
   const { id } = req.params;
-
   try {
-    const docRef = doc(db, "invitations", id);
-    await deleteDoc(docRef);
+    await deleteDoc(doc(db, "invitations", id));
     res.status(200).json({ message: "Invitation deleted successfully" });
   } catch (error) {
     console.error("Error deleting document:", error);
@@ -149,97 +145,21 @@ app.delete("/invitations/:id", async (req, res) => {
   }
 });
 
-// Upload Gallery Photo (file upload endpoint)
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = "uploads/";
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true }); // Create 'uploads' directory if it doesn't exist
-    }
-    cb(null, uploadDir); // Define folder to store files
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname)); // Unique filename
-  },
-});
-
-const upload = multer({ storage: storage });
-
-// POST gallery photo
-app.post("/uploadGallery", upload.single("image"), async (req, res) => {
-  console.log(req.body); // Log the body to ensure it's correct
-  console.log(req.file); // Log the file to check if it's uploaded
-
-  if (!req.file) {
-    return res.status(400).json({ message: "No file uploaded." });
-  }
-
-  // const imageUrl = `https://backend-undangan-pernikahan-opang.vercel.app/uploads/${req.file.filename}`;
-  const imageUrl = req.file
-    ? `https://backend-undangan-pernikahan-opang.vercel.app/uploads/${req.file.filename}`
-    : "https://web-undangan-pernikahan-kappa.vercel.app/path/to/placeholder-image.jpg";
-
-  try {
-    // Add the image URL to Firestore
-    const docRef = await addDoc(collection(db, "imageGallery"), {
-      imageUrl,
-      timestamp: serverTimestamp(),
-    });
-
-    res.status(201).json({
-      message: "Gallery Photo added successfully",
-      id: docRef.id,
-      imageUrl: imageUrl,
-    });
-  } catch (error) {
-    console.error("Error adding document:", error);
-    res.status(500).json({ message: "Failed to add Gallery Photo" });
-  }
-});
-
-// GET gallery images
-app.get("/getGallery", async (req, res) => {
-  try {
-    const snapshot = await getDocs(collection(db, "imageGallery"));
-    const images = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      imageUrl: doc.data().imageUrl,
-      timestamp: doc.data().timestamp,
-    }));
-    res.status(200).json(images);
-  } catch (error) {
-    console.error("Error retrieving images:", error);
-    res.status(500).json({ message: "Failed to retrieve images" });
-  }
-});
-
-// Delete image route
+// Delete gallery photo
 app.delete("/deleteGallery/:id", async (req, res) => {
-  const imageId = req.params.id;
-
+  const { id } = req.params;
   try {
-    const docRef = doc(db, "imageGallery", imageId);
-    const docSnap = await docRef.get();
-
+    const docRef = doc(db, "imageGallery", id);
+    const docSnap = await getDocs(docRef);
     if (!docSnap.exists()) {
       return res.status(404).json({ message: "Image not found" });
     }
 
-    const imageUrl = docSnap.data().imageUrl;
-    const fileName = imageUrl.split("/").pop(); // Get the file name from URL
-
-    const filePath = path.join(__dirname, "uploads", fileName);
-
-    fs.unlink(filePath, (err) => {
-      if (err) {
-        console.error("Error deleting the file:", err);
-        return res
-          .status(500)
-          .json({ message: "Failed to delete image from server" });
-      }
-    });
-
-    await deleteDoc(docRef);
+    const { imageUrl } = docSnap.data();
+    const fileName = imageUrl.split("/").pop(); // Get Firebase file reference
+    const fileRef = ref(storageFs, `uploads/${fileName}`);
+    await deleteObject(fileRef); // Delete image from Firebase Storage
+    await deleteDoc(docRef); // Delete document from Firestore
 
     res.status(200).json({ message: "Gallery Photo deleted successfully" });
   } catch (error) {
@@ -248,7 +168,7 @@ app.delete("/deleteGallery/:id", async (req, res) => {
   }
 });
 
-// Serve uploaded files statically
+// Serve static files in uploads folder
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Start server
