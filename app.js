@@ -124,11 +124,29 @@ app.post("/signup", async (req, res) => {
 });
 
 // User login route
+// app.post("/login", async (req, res) => {
+//   const { email } = req.body;
+//   try {
+//     const userCredential = await auth.getUserByEmail(email); // Check if user exists
+//     const token = await auth.createCustomToken(userCredential.uid);
+//     res.status(200).json({ token });
+//   } catch (error) {
+//     console.error("Login error:", error);
+//     res.status(500).json({ message: "Authentication failed" });
+//   }
+// });
+
 app.post("/login", async (req, res) => {
   const { email } = req.body;
+
   try {
-    const userCredential = await auth.getUserByEmail(email); // Check if user exists
-    const token = await auth.createCustomToken(userCredential.uid);
+    // Check if the user exists using Firebase Auth
+    const userRecord = await admin.auth().getUserByEmail(email);
+
+    // Generate a custom token
+    const token = await admin.auth().createCustomToken(userRecord.uid);
+
+    // Send the token in the response
     res.status(200).json({ token });
   } catch (error) {
     console.error("Login error:", error);
