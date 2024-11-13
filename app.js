@@ -32,30 +32,7 @@ const app = express();
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp); // Firestore instance
 
-app.use(
-  cors({
-    origin: allowedOrigin,
-  })
-);
-
-// Enable CORS for all origins (for development only)
-const allowedOrigin = "https://web-undangan-pernikahan-kappa.vercel.app";
-
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS"
-  );
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-  // Handle OPTIONS preflight requests
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  next();
-});
+app.use(cors());
 
 app.use(bodyParser.json());
 
