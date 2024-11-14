@@ -36,19 +36,19 @@ cloudinary.config({
 });
 
 // Multer storage configuration
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = "uploads/";
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     const uploadDir = "uploads/";
 
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
-});
+//     if (!fs.existsSync(uploadDir)) {
+//       fs.mkdirSync(uploadDir, { recursive: true });
+//     }
+//     cb(null, uploadDir);
+//   },
+//   filename: function (req, file, cb) {
+//     cb(null, Date.now() + path.extname(file.originalname));
+//   },
+// });
 
 // Initialize the Express app and Firestore
 const app = express();
@@ -170,69 +170,57 @@ app.delete("/invitations/:id", async (req, res) => {
   }
 });
 
-// File upload functionality for gallery
+// Function to upload to Cloudinary with detailed error handling
+// Memory storage for multer to avoid filesystem errors
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 app.post("/uploadGallery", upload.single("file"), async (req, res) => {
   if (!req.file) {
-    console.error("No file uploaded.");
     return res.status(400).json({ message: "No file uploaded." });
   }
 
-  const filePath = path.join(__dirname, "uploads", req.file.filename);
-  console.log("File uploaded successfully, processing upload to Cloudinary...");
-
   try {
-    // Attempt to upload to Cloudinary
-    const imageUrl = await uploadFileToCloudinary(filePath);
-    console.log("Cloudinary upload successful, imageUrl:", imageUrl);
+    // Use a Promise to upload to Cloudinary
+    const uploadToCloudinary = () => {
+      return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { resource_type: "auto" },
+          (error, result) => {
+            if (error) {
+              reject(new Error("Failed to upload image to Cloudinary"));
+            } else {
+              resolve(result);
+            }
+          }
+        );
+
+        // Pipe the file buffer to Cloudinary
+        uploadStream.end(req.file.buffer);
+      });
+    };
+
+    // Upload the image to Cloudinary and wait for the result
+    const cloudinaryResult = await uploadToCloudinary();
 
     // Add the image URL to Firestore
-    const galleryCollection = collection(dbLocale, "imageGallery");
-    const docRef = await addDoc(galleryCollection, {
-      imageUrl,
+    const docRef = await addDoc(collection(dbLocale, "imageGallery"), {
+      imageUrl: cloudinaryResult.secure_url,
       timestamp: serverTimestamp(),
     });
-
-    console.log("Firestore document created successfully with ID:", docRef.id);
 
     res.status(201).json({
       message: "Gallery Photo added successfully",
       id: docRef.id,
-      imageUrl: imageUrl,
+      imageUrl: cloudinaryResult.secure_url,
     });
   } catch (error) {
-    console.error("Error adding Gallery Photo:", error);
-    if (error.response) {
-      console.error("Cloudinary Error Response:", error.response.data);
-    }
+    console.error("Error uploading to Cloudinary:", error);
     res
       .status(500)
-      .json({ message: "Failed to add Gallery Photo", error: error.message });
-  } finally {
-    // Clean up the uploaded file after the upload process
-    fs.unlink(filePath, (err) => {
-      if (err) {
-        console.error("Error deleting uploaded file:", err);
-      } else {
-        console.log("Uploaded file deleted successfully.");
-      }
-    });
+      .json({ message: "Error uploading image", error: error.message });
   }
 });
-
-// Function to upload to Cloudinary with detailed error handling
-const uploadFileToCloudinary = (filePath) => {
-  return new Promise((resolve, reject) => {
-    cloudinary.uploader.upload(filePath, (error, result) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(result.secure_url);
-      }
-    });
-  });
-};
 
 app.get("/getGallery", async (req, res) => {
   try {
