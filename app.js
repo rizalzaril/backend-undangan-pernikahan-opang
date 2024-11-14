@@ -19,7 +19,6 @@ const path = require("path");
 const fs = require("fs");
 const cloudinary = require("cloudinary").v2;
 const firebaseAdminConfig = require("./firebaseAdmin");
-// console.log(firebaseAdminConfig.projectId);
 const serviceAccount = require("./serviceAccountKey.json");
 
 // Initialize Firebase Admin SDK
@@ -82,6 +81,7 @@ const firebaseApp = initializeApp(firebaseConfig);
 const dbLocale = getFirestore(firebaseApp);
 const auth = admin.auth();
 const db = admin.firestore();
+
 // Allow CORS from the specific frontend origin
 app.use(
   cors({
@@ -151,18 +151,6 @@ app.post("/signup", async (req, res) => {
 });
 
 // User login route
-// app.post("/login", async (req, res) => {
-//   const { email } = req.body;
-//   try {
-//     const userCredential = await auth.getUserByEmail(email); // Check if user exists
-//     const token = await auth.createCustomToken(userCredential.uid);
-//     res.status(200).json({ token });
-//   } catch (error) {
-//     console.error("Login error:", error);
-//     res.status(500).json({ message: "Authentication failed" });
-//   }
-// });
-
 app.post("/login", async (req, res) => {
   const { email } = req.body;
 
@@ -206,7 +194,7 @@ app.post("/invitations", async (req, res) => {
   }
 });
 
-// Read: Get all invitations from Firestore
+// Read: Get all invitations from Firestore (no auth required)
 app.get("/invitations", async (req, res) => {
   try {
     const snapshot = await getDocs(collection(dbLocale, "invitations"));
@@ -293,7 +281,7 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
   }
 });
 
-// GET gallery images
+// GET gallery images (no auth required)
 app.get("/getGallery", async (req, res) => {
   try {
     const snapshot = await getDocs(collection(dbLocale, "imageGallery"));
@@ -309,26 +297,8 @@ app.get("/getGallery", async (req, res) => {
   }
 });
 
-// Delete image route
-app.delete("/deleteGallery/:id", async (req, res) => {
-  const imageId = req.params.id;
-
-  try {
-    const docRef = doc(db, "imageGallery", imageId);
-    await deleteDoc(docRef);
-
-    res.status(200).json({ message: "Gallery Photo deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting document:", error);
-    res.status(500).json({ message: "Failed to delete Gallery Photo" });
-  }
-});
-
-// Serve uploaded files statically
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-// Start server
+// Start the server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
