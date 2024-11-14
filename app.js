@@ -159,8 +159,10 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
   const filePath = path.join(__dirname, "uploads", req.file.filename);
 
   try {
+    // Upload image to Cloudinary
     const imageUrl = await uploadFileToCloudinary(filePath);
 
+    // Add the image URL to Firestore
     const docRef = await addDoc(collection(dbLocale, "imageGallery"), {
       imageUrl,
       timestamp: serverTimestamp(),
@@ -173,8 +175,17 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
     });
   } catch (error) {
     console.error("Error adding Gallery Photo:", error);
-    res.status(500).json({ message: "Failed to add Gallery Photo" });
+
+    // Log specific error information
+    if (error.response) {
+      console.error("Cloudinary Error Response:", error.response);
+    }
+
+    res
+      .status(500)
+      .json({ message: "Failed to add Gallery Photo", error: error.message });
   } finally {
+    // Ensure file deletion after upload attempt
     fs.unlink(filePath, (err) => {
       if (err) {
         console.error("Error deleting uploaded file:", err);
@@ -198,11 +209,12 @@ app.get("/getGallery", async (req, res) => {
   }
 });
 
-// Upload image to Cloudinary
+// Upload file to Cloudinary with detailed error handling
 async function uploadFileToCloudinary(filePath) {
   return new Promise((resolve, reject) => {
     cloudinary.uploader.upload(filePath, (error, result) => {
       if (error) {
+        console.error("Cloudinary upload failed:", error);
         reject(error);
       } else {
         resolve(result.secure_url);
