@@ -60,24 +60,6 @@ const storage = multer.diskStorage({
   },
 });
 
-// Middleware for authenticating the token
-const authenticateToken = async (req, res, next) => {
-  const token = req.headers["authorization"]?.split(" ")[1];
-
-  if (!token) {
-    return res.status(403).json({ message: "No token provided" });
-  }
-
-  try {
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    req.user = decodedToken;
-    next();
-  } catch (error) {
-    console.error("Token verification error:", error);
-    res.status(403).json({ message: "Invalid or expired token" });
-  }
-};
-
 // Initialize the Express app and Firestore
 const app = express();
 const firebaseApp = initializeApp(firebaseConfig);
@@ -113,6 +95,26 @@ app.post("/getToken", async (req, res) => {
 });
 
 // ************************************************ ROUTE SCRIPT *******************************************************\\
+
+// Middleware for authenticating the token
+const authenticateToken = async (req, res, next) => {
+  const token = req.headers["authorization"]?.split(" ")[1];
+
+  if (!token) {
+    return res.status(403).json({ message: "No token provided" });
+  }
+
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    req.user = decodedToken;
+    next();
+  } catch (error) {
+    console.error("Token verification error:", error);
+    res.status(403).json({ message: "Invalid or expired token" });
+  }
+};
+
+// app.use(authenticateToken);
 
 // User sign-up route
 app.post("/signup", async (req, res) => {
