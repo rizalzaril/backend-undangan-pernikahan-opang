@@ -267,6 +267,21 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
   }
 });
 
+app.get("/getGallery", async (req, res) => {
+  try {
+    const snapshot = await getDocs(collection(dbLocale, "imageGallery"));
+    const images = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      imageUrl: doc.data().imageUrl,
+      timestamp: doc.data().timestamp,
+    }));
+    res.status(200).json(images);
+  } catch (error) {
+    console.error("Error retrieving images:", error);
+    res.status(500).json({ message: "Failed to retrieve images" });
+  }
+});
+
 // Upload image to Cloudinary
 async function uploadFileToCloudinary(filePath) {
   return new Promise((resolve, reject) => {
