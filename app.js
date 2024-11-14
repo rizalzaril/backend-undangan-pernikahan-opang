@@ -237,6 +237,20 @@ app.get("/getGallery", async (req, res) => {
   }
 });
 
+// Delete an image by ID
+app.delete("/deleteGallery/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    await deleteDoc(doc(dbLocale, "imageGallery", id));
+    res.status(200).json({ message: "Image deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting image:", error);
+    res.status(500).json({ message: "Failed to delete image" });
+  }
+});
+
+// Delete all images
+
 // Server setup
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
