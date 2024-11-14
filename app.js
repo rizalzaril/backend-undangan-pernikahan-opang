@@ -82,9 +82,12 @@ const firebaseApp = initializeApp(firebaseConfig);
 const dbLocale = getFirestore(firebaseApp);
 const auth = admin.auth();
 const db = admin.firestore();
+// Allow CORS from the specific frontend origin
 app.use(
   cors({
-    origin: "*", // Accept all origins (use only in development)
+    origin: "http://127.0.0.1:5500", // Add the correct origin here
+    methods: ["GET", "POST", "PUT", "DELETE"], // You can adjust the methods as necessary
+    allowedHeaders: ["Content-Type", "Authorization"], // Specify allowed headers
   })
 );
 
