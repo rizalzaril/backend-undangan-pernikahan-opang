@@ -87,7 +87,7 @@ const db = admin.firestore();
 // Allow CORS from the specific frontend origin
 app.use(
   cors({
-    origin: "http://127.0.0.1:5500", // Add the correct origin here
+    origin: "https://web-wedding-invitation-umber.vercel.app/", // Add the correct origin here
     methods: ["GET", "POST", "PUT", "DELETE"], // Adjust methods as necessary
     allowedHeaders: ["Content-Type", "Authorization"], // Specify allowed headers
   })
@@ -109,6 +109,23 @@ app.post("/getToken", async (req, res) => {
   } catch (error) {
     console.error("Error generating custom token:", error);
     res.status(500).json({ message: "Error generating custom token" });
+  }
+});
+
+app.post("/verifToken", async (req, res) => {
+  const token = req.headers["authorization"];
+
+  if (!token) {
+    return res.status(401).send("Token is required");
+  }
+
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    res
+      .status(200)
+      .send({ message: "Token verified", userId: decodedToken.uid });
+  } catch (error) {
+    res.status(401).send("Invalid token");
   }
 });
 
