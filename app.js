@@ -59,8 +59,8 @@ const dbLocale = getFirestore(firebaseApp);
 app.use(
   cors({
     origin: "https://web-wedding-invitation-umber.vercel.app/", // Add the correct origin here
-    methods: ["GET", "POST", "PUT", "DELETE"], // Adjust methods as necessary
-    allowedHeaders: ["Content-Type"], // Specify allowed headers
+    // methods: ["GET", "POST", "PUT", "DELETE"], // Adjust methods as necessary
+    // allowedHeaders: ["Content-Type"], // Specify allowed headers
   })
 );
 
@@ -153,13 +153,15 @@ const upload = multer({ storage: storage });
 
 app.post("/uploadGallery", upload.single("file"), async (req, res) => {
   if (!req.file) {
+    console.error("No file uploaded.");
     return res.status(400).json({ message: "No file uploaded." });
   }
 
   const filePath = path.join(__dirname, "uploads", req.file.filename);
+  console.log("File uploaded successfully, processing upload to Cloudinary...");
 
   try {
-    // Upload image to Cloudinary
+    // Attempt to upload to Cloudinary
     const imageUrl = await uploadFileToCloudinary(filePath);
 
     // Add the image URL to Firestore
@@ -176,23 +178,42 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
   } catch (error) {
     console.error("Error adding Gallery Photo:", error);
 
-    // Log specific error information
+    // Log more details of the error
     if (error.response) {
       console.error("Cloudinary Error Response:", error.response);
     }
-
     res
       .status(500)
       .json({ message: "Failed to add Gallery Photo", error: error.message });
   } finally {
-    // Ensure file deletion after upload attempt
+    // Clean up the uploaded file after the upload process
     fs.unlink(filePath, (err) => {
       if (err) {
         console.error("Error deleting uploaded file:", err);
+      } else {
+        console.log("Uploaded file deleted successfully.");
       }
     });
   }
 });
+
+// Function to upload to Cloudinary with detailed error handling
+async function uploadFileToCloudinary(filePath) {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload(filePath, (error, result) => {
+      if (error) {
+        console.error("Cloudinary upload failed:", error);
+        reject(error);
+      } else {
+        console.log(
+          "File uploaded to Cloudinary successfully:",
+          result.secure_url
+        );
+        resolve(result.secure_url);
+      }
+    });
+  });
+}
 
 app.get("/getGallery", async (req, res) => {
   try {
@@ -208,20 +229,6 @@ app.get("/getGallery", async (req, res) => {
     res.status(500).json({ message: "Failed to retrieve images" });
   }
 });
-
-// Upload file to Cloudinary with detailed error handling
-async function uploadFileToCloudinary(filePath) {
-  return new Promise((resolve, reject) => {
-    cloudinary.uploader.upload(filePath, (error, result) => {
-      if (error) {
-        console.error("Cloudinary upload failed:", error);
-        reject(error);
-      } else {
-        resolve(result.secure_url);
-      }
-    });
-  });
-}
 
 // Server setup
 const PORT = process.env.PORT || 5000;
