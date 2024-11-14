@@ -18,6 +18,8 @@ const admin = require("firebase-admin");
 const path = require("path");
 const fs = require("fs");
 const cloudinary = require("cloudinary").v2;
+const firebaseAdminConfig = require("./firebaseAdmin");
+// console.log(firebaseAdminConfig.projectId);
 const serviceAccount = require("./serviceAccountKey.json");
 
 // Initialize Firebase Admin SDK
@@ -84,23 +86,39 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // AUTH TOKEN ///
+// Middleware to authenticate ID token
 const authenticateToken = async (req, res, next) => {
-  const token = req.headers["authorization"]?.split(" ")[1]; // Get token from "Bearer <token>"
+  const token = req.headers["authorization"]?.split(" ")[1];
 
   if (!token) {
     return res.status(403).json({ message: "No token provided" });
   }
 
   try {
-    // Verify the custom token and get user data
     const decodedToken = await admin.auth().verifyIdToken(token);
-    req.user = decodedToken; // Store user data in the request object
-    next(); // Proceed to the next middleware or route handler
+    req.user = decodedToken;
+    next();
   } catch (error) {
     console.error("Token verification error:", error);
     res.status(403).json({ message: "Invalid or expired token" });
   }
 };
+
+// Route to generate a custom token for a specific user (server-side token creation)
+app.post("/getToken", async (req, res) => {
+  const { uid } = req.body;
+  if (!uid) {
+    return res.status(400).json({ message: "UID is required" });
+  }
+
+  try {
+    const customToken = await admin.auth().createCustomToken(uid);
+    res.json({ token: customToken });
+  } catch (error) {
+    console.error("Error generating custom token:", error);
+    res.status(500).json({ message: "Error generating custom token" });
+  }
+});
 
 // ************************************************ ROUTE SCRIPT *******************************************************\\
 
@@ -268,7 +286,7 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
 });
 
 // GET gallery images
-app.get("/getGallery", authenticateToken, async (req, res) => {
+app.get("/getGallery", async (req, res) => {
   try {
     const snapshot = await getDocs(collection(dbLocale, "imageGallery"));
     const images = snapshot.docs.map((doc) => ({
