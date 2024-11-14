@@ -94,6 +94,28 @@ app.post("/invitations", async (req, res) => {
   }
 });
 
+app.post("/postImage", async (req, res) => {
+  const { imageUrl } = req.body;
+
+  if (!imageUrl) {
+    return res.status(400).json({ message: "All fields are required." });
+  }
+
+  try {
+    const docRef = await addDoc(collection(dbLocale, "imageGallery"), {
+      imageUrl,
+      timestamp: serverTimestamp(),
+    });
+
+    res
+      .status(201)
+      .json({ message: "Image added successfully", id: docRef.id });
+  } catch (error) {
+    console.error("Error adding document:", error);
+    res.status(500).json({ message: "Failed to add Image" });
+  }
+});
+
 // Read: Get all invitations from Firestore (no auth required)
 app.get("/invitations", async (req, res) => {
   try {
@@ -201,22 +223,18 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
 });
 
 // Function to upload to Cloudinary with detailed error handling
-async function uploadFileToCloudinary(filePath) {
-  return new Promise((resolve, reject) => {
-    cloudinary.uploader.upload(filePath, (error, result) => {
-      if (error) {
-        console.error("Cloudinary upload failed:", error);
-        reject(error);
-      } else {
-        console.log(
-          "File uploaded to Cloudinary successfully:",
-          result.secure_url
-        );
-        resolve(result.secure_url);
-      }
+const uploadFileToCloudinary = async (filePath) => {
+  try {
+    // Upload the image to Cloudinary
+    const result = await cloudinary.uploader.upload(filePath, {
+      resource_type: "auto", // Automatically detect the file type (image, video, etc.)
     });
-  });
-}
+    return result.secure_url; // Return the secure URL of the uploaded file
+  } catch (error) {
+    console.error("Error uploading to Cloudinary:", error);
+    throw error; // Propagate the error
+  }
+};
 
 app.get("/getGallery", async (req, res) => {
   try {
