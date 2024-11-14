@@ -97,9 +97,9 @@ app.post("/invitations", async (req, res) => {
 app.post("/postImage", async (req, res) => {
   const { imageUrl } = req.body;
 
-  if (!imageUrl) {
-    return res.status(400).json({ message: "All fields are required." });
-  }
+  // if (!imageUrl) {
+  //   return res.status(400).json({ message: "All fields are required." });
+  // }
 
   try {
     const docRef = await addDoc(collection(dbLocale, "imageGallery"), {
