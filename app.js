@@ -83,7 +83,11 @@ const dbLocale = getFirestore(firebaseApp);
 const auth = admin.auth();
 const db = admin.firestore();
 app.use(cors());
-app.use(bodyParser.json());
+app.use(
+  bodyParser.json({
+    origin: "http://127.0.0.1:5500/",
+  })
+);
 
 // AUTH TOKEN ///
 // Middleware to authenticate ID token
