@@ -54,14 +54,13 @@ const storage = multer.diskStorage({
 const app = express();
 const firebaseApp = initializeApp(firebaseConfig);
 const dbLocale = getFirestore(firebaseApp);
-// const db = admin.firestore();
 
 // Allow CORS from the specific frontend origin
 app.use(
   cors({
-    origin: "*", // Allow all domains to access the server
-    methods: ["GET", "POST", "PUT", "DELETE"], // Specify allowed HTTP methods
-    allowedHeaders: ["Content-Type"], // Specify allowed headers
+    origin: process.env.CORS_ORIGIN || "*", // Use environment variable for production
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type"],
   })
 );
 
@@ -176,11 +175,12 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
     console.error("Error adding Gallery Photo:", error);
     res.status(500).json({ message: "Failed to add Gallery Photo" });
   } finally {
-    fs.unlink(filePath, (err) => {
-      if (err) {
-        console.error("Error deleting uploaded file:", err);
-      }
-    });
+    try {
+      // Ensure the file is deleted after the upload
+      fs.unlinkSync(filePath);
+    } catch (err) {
+      console.error("Error deleting uploaded file:", err);
+    }
   }
 });
 
