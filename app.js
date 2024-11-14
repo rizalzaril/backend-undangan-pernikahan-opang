@@ -188,7 +188,8 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
     console.log("Cloudinary upload successful, imageUrl:", imageUrl);
 
     // Add the image URL to Firestore
-    const docRef = await addDoc(collection(dbLocale, "imageGallery"), {
+    const galleryCollection = collection(dbLocale, "imageGallery");
+    const docRef = await addDoc(galleryCollection, {
       imageUrl,
       timestamp: serverTimestamp(),
     });
@@ -202,8 +203,6 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
     });
   } catch (error) {
     console.error("Error adding Gallery Photo:", error);
-
-    // Log more details of the error
     if (error.response) {
       console.error("Cloudinary Error Response:", error.response.data);
     }
@@ -223,17 +222,16 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
 });
 
 // Function to upload to Cloudinary with detailed error handling
-const uploadFileToCloudinary = async (filePath) => {
-  try {
-    // Upload the image to Cloudinary
-    const result = await cloudinary.uploader.upload(filePath, {
-      resource_type: "auto", // Automatically detect the file type (image, video, etc.)
+const uploadFileToCloudinary = (filePath) => {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload(filePath, (error, result) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(result.secure_url);
+      }
     });
-    return result.secure_url; // Return the secure URL of the uploaded file
-  } catch (error) {
-    console.error("Error uploading to Cloudinary:", error);
-    throw error; // Propagate the error
-  }
+  });
 };
 
 app.get("/getGallery", async (req, res) => {
