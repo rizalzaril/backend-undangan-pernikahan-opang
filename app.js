@@ -163,12 +163,15 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
   try {
     // Attempt to upload to Cloudinary
     const imageUrl = await uploadFileToCloudinary(filePath);
+    console.log("Cloudinary upload successful, imageUrl:", imageUrl);
 
     // Add the image URL to Firestore
     const docRef = await addDoc(collection(dbLocale, "imageGallery"), {
       imageUrl,
       timestamp: serverTimestamp(),
     });
+
+    console.log("Firestore document created successfully with ID:", docRef.id);
 
     res.status(201).json({
       message: "Gallery Photo added successfully",
@@ -180,7 +183,7 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
 
     // Log more details of the error
     if (error.response) {
-      console.error("Cloudinary Error Response:", error.response);
+      console.error("Cloudinary Error Response:", error.response.data);
     }
     res
       .status(500)
