@@ -58,7 +58,7 @@ const dbLocale = getFirestore(firebaseApp);
 // Allow CORS from the specific frontend origin
 app.use(
   cors({
-    origin: "https://web-wedding-invitation-umber.vercel.app/", // Add the correct origin here
+    origin: "*", // Add the correct origin here
     // methods: ["GET", "POST", "PUT", "DELETE"], // Adjust methods as necessary
     // allowedHeaders: ["Content-Type"], // Specify allowed headers
   })
