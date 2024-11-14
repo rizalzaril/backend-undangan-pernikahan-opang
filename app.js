@@ -189,7 +189,7 @@ app.post("/invitations", async (req, res) => {
   }
 
   try {
-    const docRef = await addDoc(collection(dbLocale, "invitations"), {
+    const docRef = await addDoc(collection(db, "invitations"), {
       nama,
       status,
       pesan,
@@ -208,7 +208,7 @@ app.post("/invitations", async (req, res) => {
 // Read: Get all invitations from Firestore (no auth required)
 app.get("/invitations", async (req, res) => {
   try {
-    const snapshot = await getDocs(collection(dbLocale, "invitations"));
+    const snapshot = await getDocs(collection(db, "invitations"));
     const invitations = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
