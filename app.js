@@ -10,6 +10,8 @@ const {
   doc,
   updateDoc,
   deleteDoc,
+  orderBy,
+  query,
   serverTimestamp,
 } = require("firebase/firestore");
 const cors = require("cors");
@@ -254,11 +256,18 @@ app.post("/tamu", async (req, res) => {
 
 app.get("/getTamu", async (req, res) => {
   try {
-    const snapshot = await getDocs(collection(dbLocale, "tamu"));
+    // Assuming you want to order by a field like 'createdAt' or 'timestamp'
+    const tamuQuery = query(
+      collection(dbLocale, "tamu"),
+      orderBy("createdAt", "desc") // Replace 'createdAt' with your field name
+    );
+
+    const snapshot = await getDocs(tamuQuery);
     const tamu = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
+
     res.status(200).json(tamu);
   } catch (error) {
     console.error("Error fetching tamu:", error);
