@@ -94,28 +94,6 @@ app.post("/invitations", async (req, res) => {
   }
 });
 
-app.post("/postImage", async (req, res) => {
-  const { imageUrl } = req.body;
-
-  // if (!imageUrl) {
-  //   return res.status(400).json({ message: "All fields are required." });
-  // }
-
-  try {
-    const docRef = await addDoc(collection(dbLocale, "imageGallery"), {
-      imageUrl,
-      timestamp: serverTimestamp(),
-    });
-
-    res
-      .status(201)
-      .json({ message: "Image added successfully", id: docRef.id });
-  } catch (error) {
-    console.error("Error adding document:", error);
-    res.status(500).json({ message: "Failed to add Image" });
-  }
-});
-
 // Read: Get all invitations from Firestore (no auth required)
 app.get("/invitations", async (req, res) => {
   try {
@@ -249,7 +227,44 @@ app.delete("/deleteGallery/:id", async (req, res) => {
   }
 });
 
-// Delete all images
+///////////////////////////////////////////////////// ROUTES DATA TAMU ////////////////////////////////////////////////////////////////////
+
+app.post("/tamu", async (req, res) => {
+  const { nama_tamu, url } = req.body;
+
+  if (!nama_tamu || !url) {
+    return res.status(400).json({ message: "All fields are required." });
+  }
+
+  try {
+    const docRef = await addDoc(collection(dbLocale, "tamu"), {
+      nama_tamu,
+      url,
+      timestamp: serverTimestamp(),
+    });
+
+    res
+      .status(201)
+      .json({ message: "Guest added successfully", id: docRef.id });
+  } catch (error) {
+    console.error("Error adding document:", error);
+    res.status(500).json({ message: "Failed to add Guest" });
+  }
+});
+
+app.get("/getTamu", async (req, res) => {
+  try {
+    const snapshot = await getDocs(collection(dbLocale, "tamu"));
+    const tamu = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    res.status(200).json(tamu);
+  } catch (error) {
+    console.error("Error fetching tamu:", error);
+    res.status(500).json({ message: "Failed to fetch invitations" });
+  }
+});
 
 // Server setup
 const PORT = process.env.PORT || 5000;
