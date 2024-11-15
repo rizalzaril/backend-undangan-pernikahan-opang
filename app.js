@@ -256,10 +256,10 @@ app.post("/tamu", async (req, res) => {
 
 app.get("/getTamu", async (req, res) => {
   try {
-    // Assuming you want to order by a field like 'createdAt' or 'timestamp'
+    // Order by 'createdAt' in descending order to show the most recent entries first
     const tamuQuery = query(
       collection(dbLocale, "tamu"),
-      orderBy("createdAt", "asc") // Replace 'createdAt' with your field name
+      orderBy("createdAt", "desc") // Use "desc" to get the most recent first
     );
 
     const snapshot = await getDocs(tamuQuery);
