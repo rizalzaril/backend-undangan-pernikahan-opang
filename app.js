@@ -259,7 +259,7 @@ app.get("/getTamu", async (req, res) => {
     // Assuming you want to order by a field like 'createdAt' or 'timestamp'
     const tamuQuery = query(
       collection(dbLocale, "tamu"),
-      orderBy("createdAt", "desc") // Replace 'createdAt' with your field name
+      orderBy("createdAt", "asc") // Replace 'createdAt' with your field name
     );
 
     const snapshot = await getDocs(tamuQuery);
