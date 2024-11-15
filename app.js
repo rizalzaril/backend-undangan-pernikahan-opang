@@ -10,9 +10,8 @@ const {
   doc,
   updateDoc,
   deleteDoc,
-  orderBy,
-  query,
   serverTimestamp,
+  orderBy,
 } = require("firebase/firestore");
 const cors = require("cors");
 const multer = require("multer");
@@ -38,19 +37,8 @@ cloudinary.config({
 });
 
 // Multer storage configuration
-// const storage = multer.diskStorage({
-//   destination: function (req, file, cb) {
-//     const uploadDir = "uploads/";
-
-//     if (!fs.existsSync(uploadDir)) {
-//       fs.mkdirSync(uploadDir, { recursive: true });
-//     }
-//     cb(null, uploadDir);
-//   },
-//   filename: function (req, file, cb) {
-//     cb(null, Date.now() + path.extname(file.originalname));
-//   },
-// });
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 // Initialize the Express app and Firestore
 const app = express();
@@ -61,8 +49,6 @@ const dbLocale = getFirestore(firebaseApp);
 app.use(
   cors({
     origin: "*", // Add the correct origin here
-    // methods: ["GET", "POST", "PUT", "DELETE"], // Adjust methods as necessary
-    // allowedHeaders: ["Content-Type"], // Specify allowed headers
   })
 );
 
@@ -151,17 +137,12 @@ app.delete("/invitations/:id", async (req, res) => {
 });
 
 // Function to upload to Cloudinary with detailed error handling
-// Memory storage for multer to avoid filesystem errors
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
-
 app.post("/uploadGallery", upload.single("file"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded." });
   }
 
   try {
-    // Use a Promise to upload to Cloudinary
     const uploadToCloudinary = () => {
       return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
@@ -174,16 +155,12 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
             }
           }
         );
-
-        // Pipe the file buffer to Cloudinary
         uploadStream.end(req.file.buffer);
       });
     };
 
-    // Upload the image to Cloudinary and wait for the result
     const cloudinaryResult = await uploadToCloudinary();
 
-    // Add the image URL to Firestore
     const docRef = await addDoc(collection(dbLocale, "imageGallery"), {
       imageUrl: cloudinaryResult.secure_url,
       timestamp: serverTimestamp(),
@@ -202,6 +179,7 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
   }
 });
 
+// Get images from Firestore
 app.get("/getGallery", async (req, res) => {
   try {
     const snapshot = await getDocs(collection(dbLocale, "imageGallery"));
@@ -231,6 +209,7 @@ app.delete("/deleteGallery/:id", async (req, res) => {
 
 ///////////////////////////////////////////////////// ROUTES DATA TAMU ////////////////////////////////////////////////////////////////////
 
+// Add guest
 app.post("/tamu", async (req, res) => {
   const { nama_tamu, url } = req.body;
 
@@ -254,24 +233,21 @@ app.post("/tamu", async (req, res) => {
   }
 });
 
+// Get all guests (order by timestamp descending)
 app.get("/getTamu", async (req, res) => {
   try {
-    // Order by 'createdAt' in descending order to show the most recent entries first
-    const tamuQuery = query(
+    const snapshot = await getDocs(
       collection(dbLocale, "tamu"),
-      orderBy("createdAt", "desc") // Use "desc" to get the most recent first
+      orderBy("timestamp", "desc") // Ordering by timestamp in descending order
     );
-
-    const snapshot = await getDocs(tamuQuery);
     const tamu = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
-
     res.status(200).json(tamu);
   } catch (error) {
     console.error("Error fetching tamu:", error);
-    res.status(500).json({ message: "Failed to fetch invitations" });
+    res.status(500).json({ message: "Failed to fetch tamu" });
   }
 });
 
