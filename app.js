@@ -36,6 +36,14 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// Initialize the Express app and Firestore
+const app = express();
+// Middleware to increase payload size limit (set to 50MB here)
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+const firebaseApp = initializeApp(firebaseConfig);
+const dbLocale = getFirestore(firebaseApp);
+
 // Multer storage configuration
 
 const storage = multer.memoryStorage();
@@ -45,14 +53,6 @@ const upload = multer({
     fileSize: 50 * 1024 * 1024, // 50MB file size limit
   },
 }).single("file"); // Expect a single file with the field name "file"
-
-// Initialize the Express app and Firestore
-const app = express();
-// Middleware to increase payload size limit (set to 50MB here)
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
-const firebaseApp = initializeApp(firebaseConfig);
-const dbLocale = getFirestore(firebaseApp);
 
 // Allow CORS from the specific frontend origin
 app.use(
