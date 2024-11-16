@@ -253,7 +253,7 @@ app.get("/getTamu", async (req, res) => {
 
 // ******************************************* JADWAL ROUTE *****************************************\\
 
-// Create: Add invitation data to Firestore
+// Create: Add jadwal akad data to Firestore
 app.post("/postJadwalAkad", async (req, res) => {
   const { tanggal, jam } = req.body;
 
@@ -277,7 +277,7 @@ app.post("/postJadwalAkad", async (req, res) => {
   }
 });
 
-// Read: Get all invitations from Firestore (no auth required)
+// Read: Get all jadwal akad from Firestore (no auth required)
 app.get("/getJadwalAkad", async (req, res) => {
   try {
     const snapshot = await getDocs(collection(dbLocale, "jadwalAkad"));
@@ -292,7 +292,7 @@ app.get("/getJadwalAkad", async (req, res) => {
   }
 });
 
-// Update: Update an invitation's status and message
+// Update: Update an jadwal akad status and message
 app.put("/updateJadwalAkad/:id", async (req, res) => {
   const { id } = req.params;
   const { tanggal, jam } = req.body;
@@ -311,6 +311,70 @@ app.put("/updateJadwalAkad/:id", async (req, res) => {
       timestamp: serverTimestamp(),
     });
     res.status(200).json({ message: "Jadwal Akad updated successfully" });
+  } catch (error) {
+    console.error("Error updating document:", error);
+    res.status(500).json({ message: "Failed to update Jadwal Akad" });
+  }
+});
+
+// ********** JADWAL RESEPSI ********** \\
+app.post("/postJadwalResepsi", async (req, res) => {
+  const { tanggal, jam } = req.body;
+
+  if (!tanggal || !jam) {
+    return res.status(400).json({ message: "All fields are required." });
+  }
+
+  try {
+    const docRef = await addDoc(collection(dbLocale, "jadwalResepsi"), {
+      tanggal,
+      jam,
+      timestamp: serverTimestamp(),
+    });
+
+    res
+      .status(201)
+      .json({ message: "Jadwal Resepsi added successfully", id: docRef.id });
+  } catch (error) {
+    console.error("Error adding document:", error);
+    res.status(500).json({ message: "Failed to add Jadwal Resepsi" });
+  }
+});
+
+// Read: Get all jadwal akad from Firestore (no auth required)
+app.get("/getJadwalResepsi", async (req, res) => {
+  try {
+    const snapshot = await getDocs(collection(dbLocale, "jadwalResepsi"));
+    const jadwalResepsi = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    res.status(200).json(jadwalResepsi);
+  } catch (error) {
+    console.error("Error fetching jadwal resepsi:", error);
+    res.status(500).json({ message: "Failed to fetch jadwal resepsi" });
+  }
+});
+
+// Update: Update an jadwal akad status and message
+app.put("/updateJadwalResepsi/:id", async (req, res) => {
+  const { id } = req.params;
+  const { tanggal, jam } = req.body;
+
+  if (!tanggal || !jam) {
+    return res
+      .status(400)
+      .json({ message: "Status and message are required." });
+  }
+
+  try {
+    const docRef = doc(dbLocale, "jadwalResepsi", id);
+    await updateDoc(docRef, {
+      tanggal,
+      jam,
+      timestamp: serverTimestamp(),
+    });
+    res.status(200).json({ message: "Jadwal Resepsi updated successfully" });
   } catch (error) {
     console.error("Error updating document:", error);
     res.status(500).json({ message: "Failed to update Jadwal Akad" });
