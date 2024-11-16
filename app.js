@@ -38,7 +38,12 @@ cloudinary.config({
 
 // Multer storage configuration
 const storage = multer.memoryStorage();
-const upload = multer();
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB file size limit
+  },
+}).single("file"); // Expect a single file with the field name "file"
 
 // Initialize the Express app and Firestore
 const app = express();
@@ -137,22 +142,22 @@ app.delete("/invitations/:id", async (req, res) => {
 });
 
 // Function to upload to Cloudinary with detailed error handling
-app.post("/uploadGallery", upload.single("file"), async (req, res) => {
+app.post("/uploadGallery", upload, async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded." });
   }
 
   try {
+    // Function to upload image to Cloudinary
     const uploadToCloudinary = () => {
       return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
-          { resource_type: "auto" },
+          { resource_type: "auto" }, // Auto-detect file type
           (error, result) => {
             if (error) {
-              reject(new Error("Failed to upload image to Cloudinary"));
-            } else {
-              resolve(result);
+              return reject(new Error("Failed to upload image to Cloudinary"));
             }
+            resolve(result);
           }
         );
         uploadStream.end(req.file.buffer);
@@ -161,6 +166,7 @@ app.post("/uploadGallery", upload.single("file"), async (req, res) => {
 
     const cloudinaryResult = await uploadToCloudinary();
 
+    // Save metadata to Firestore
     const docRef = await addDoc(collection(dbLocale, "imageGallery"), {
       imageUrl: cloudinaryResult.secure_url,
       timestamp: serverTimestamp(),
