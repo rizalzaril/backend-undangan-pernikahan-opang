@@ -38,7 +38,7 @@ cloudinary.config({
 
 // Multer storage configuration
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const upload = multer();
 
 // Initialize the Express app and Firestore
 const app = express();
