@@ -37,6 +37,7 @@ cloudinary.config({
 });
 
 // Multer storage configuration
+
 const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
@@ -47,6 +48,9 @@ const upload = multer({
 
 // Initialize the Express app and Firestore
 const app = express();
+// Middleware to increase payload size limit (set to 50MB here)
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 const firebaseApp = initializeApp(firebaseConfig);
 const dbLocale = getFirestore(firebaseApp);
 
