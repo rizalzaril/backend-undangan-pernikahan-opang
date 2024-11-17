@@ -452,6 +452,264 @@ app.put("/updateMaps/:id", async (req, res) => {
   }
 });
 
+// ******************** MEMPELAI SETTING ***************** \\
+
+// MEMPELAI PRIA \\
+
+app.post("/postMempelaiPria", upload, async (req, res) => {
+  const { caption, nama } = req.body;
+
+  // Validasi input
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded." });
+  }
+  if (!caption || !nama) {
+    return res.status(400).json({ message: "Nama is required." });
+  }
+
+  try {
+    // Fungsi untuk mengunggah gambar ke Cloudinary
+    const uploadToCloudinary = () => {
+      return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { resource_type: "auto" }, // Auto-detect file type
+          (error, result) => {
+            if (error) {
+              return reject(new Error("Failed to upload image to Cloudinary"));
+            }
+            resolve(result);
+          }
+        );
+        uploadStream.end(req.file.buffer);
+      });
+    };
+
+    // Upload ke Cloudinary
+    const cloudinaryResult = await uploadToCloudinary();
+
+    // Simpan metadata ke Firestore
+    const docRef = await addDoc(collection(dbLocale, "mempelaiPria"), {
+      imageUrl: cloudinaryResult.secure_url,
+      caption,
+      nama,
+      timestamp: serverTimestamp(),
+    });
+
+    // Response berhasil
+    res.status(201).json({
+      message: "Mempelai Pria added successfully",
+      id: docRef.id,
+      imageUrl: cloudinaryResult.secure_url,
+      caption,
+      nama,
+    });
+  } catch (error) {
+    // Log error dan kirim response error
+    console.error("Error:", error.message);
+    res.status(500).json({
+      message: "An error occurred while processing your request.",
+      error: error.message,
+    });
+  }
+});
+
+app.put("/updateMempelaiPria/:id", upload, async (req, res) => {
+  const { id } = req.params;
+  const { caption, nama } = req.body;
+
+  try {
+    // Validasi keberadaan dokumen
+    const docRef = doc(dbLocale, "mempelaiPria", id);
+
+    let updatedData = { caption, nama };
+
+    // Jika ada file, upload ke Cloudinary dan tambahkan URL baru
+    if (req.file) {
+      const uploadToCloudinary = () => {
+        return new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            { resource_type: "auto" },
+            (error, result) => {
+              if (error) {
+                return reject(
+                  new Error("Failed to upload image to Cloudinary")
+                );
+              }
+              resolve(result);
+            }
+          );
+          uploadStream.end(req.file.buffer);
+        });
+      };
+
+      const cloudinaryResult = await uploadToCloudinary();
+      updatedData.imageUrl = cloudinaryResult.secure_url;
+    }
+
+    // Update Firestore
+    await updateDoc(docRef, {
+      ...updatedData,
+      timestamp: serverTimestamp(), // Perbarui timestamp
+    });
+
+    // Response berhasil
+    res.status(200).json({
+      message: "Mempelai Pria updated successfully.",
+      id,
+      ...updatedData,
+    });
+  } catch (error) {
+    // Log error dan kirim response error
+    console.error("Error:", error.message);
+    res.status(500).json({
+      message: "An error occurred while processing your request.",
+      error: error.message,
+    });
+  }
+});
+
+app.get("/getMempelaiPria", async (req, res) => {
+  try {
+    const snapshot = await getDocs(collection(dbLocale, "mempelaiPria"));
+    const maps = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    res.status(200).json(maps);
+  } catch (error) {
+    console.error("Error fetching jadwal resepsi:", error);
+    res.status(500).json({ message: "Failed to fetch jadwal resepsi" });
+  }
+});
+
+// MEMPELAI WANITA \\
+
+app.post("/postMempelaiWanita", upload, async (req, res) => {
+  const { caption, nama } = req.body;
+
+  // Validasi input
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded." });
+  }
+  if (!caption || !nama) {
+    return res.status(400).json({ message: "Nama is required." });
+  }
+
+  try {
+    // Fungsi untuk mengunggah gambar ke Cloudinary
+    const uploadToCloudinary = () => {
+      return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { resource_type: "auto" }, // Auto-detect file type
+          (error, result) => {
+            if (error) {
+              return reject(new Error("Failed to upload image to Cloudinary"));
+            }
+            resolve(result);
+          }
+        );
+        uploadStream.end(req.file.buffer);
+      });
+    };
+
+    // Upload ke Cloudinary
+    const cloudinaryResult = await uploadToCloudinary();
+
+    // Simpan metadata ke Firestore
+    const docRef = await addDoc(collection(dbLocale, "mempelaiWanita"), {
+      imageUrl: cloudinaryResult.secure_url,
+      caption,
+      nama,
+      timestamp: serverTimestamp(),
+    });
+
+    // Response berhasil
+    res.status(201).json({
+      message: "Mempelai Pria added successfully",
+      id: docRef.id,
+      imageUrl: cloudinaryResult.secure_url,
+      caption,
+      nama,
+    });
+  } catch (error) {
+    // Log error dan kirim response error
+    console.error("Error:", error.message);
+    res.status(500).json({
+      message: "An error occurred while processing your request.",
+      error: error.message,
+    });
+  }
+});
+
+app.put("/updateMempelaiWanita/:id", upload, async (req, res) => {
+  const { id } = req.params;
+  const { caption, nama } = req.body;
+
+  try {
+    // Validasi keberadaan dokumen
+    const docRef = doc(dbLocale, "mempelaiWanita", id);
+
+    let updatedData = { caption, nama };
+
+    // Jika ada file, upload ke Cloudinary dan tambahkan URL baru
+    if (req.file) {
+      const uploadToCloudinary = () => {
+        return new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            { resource_type: "auto" },
+            (error, result) => {
+              if (error) {
+                return reject(
+                  new Error("Failed to upload image to Cloudinary")
+                );
+              }
+              resolve(result);
+            }
+          );
+          uploadStream.end(req.file.buffer);
+        });
+      };
+
+      const cloudinaryResult = await uploadToCloudinary();
+      updatedData.imageUrl = cloudinaryResult.secure_url;
+    }
+
+    // Update Firestore
+    await updateDoc(docRef, {
+      ...updatedData,
+      timestamp: serverTimestamp(), // Perbarui timestamp
+    });
+
+    // Response berhasil
+    res.status(200).json({
+      message: "Mempelai Pria updated successfully.",
+      id,
+      ...updatedData,
+    });
+  } catch (error) {
+    // Log error dan kirim response error
+    console.error("Error:", error.message);
+    res.status(500).json({
+      message: "An error occurred while processing your request.",
+      error: error.message,
+    });
+  }
+});
+
+app.get("/getMempelaiWanita", async (req, res) => {
+  try {
+    const snapshot = await getDocs(collection(dbLocale, "mempelaiWanita"));
+    const maps = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    res.status(200).json(maps);
+  } catch (error) {
+    console.error("Error fetching jadwal resepsi:", error);
+    res.status(500).json({ message: "Failed to fetch jadwal resepsi" });
+  }
+});
+
 // Server setup
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
