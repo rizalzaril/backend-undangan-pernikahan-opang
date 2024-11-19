@@ -795,7 +795,7 @@ app.put("/updateSampul/:id", upload, async (req, res) => {
       };
 
       const cloudinaryResult = await uploadToCloudinary();
-      updatedData.imageUrl = cloudinaryResult.secure_url;
+      imageUrl = cloudinaryResult.secure_url;
     }
 
     // Update Firestore
