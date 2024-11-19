@@ -881,6 +881,7 @@ app.post("/postFirstStory", upload, async (req, res) => {
       message: "First Story added successfully",
       id: docRef.id,
       imageUrl: cloudinaryResult.secure_url,
+      caption,
     });
   } catch (error) {
     // Log error dan kirim response error
