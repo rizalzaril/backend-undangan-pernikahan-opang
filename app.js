@@ -1090,16 +1090,16 @@ app.get("/getSecondStory", async (req, res) => {
 
 // LAST STORY \\
 
-app.post("/postSampul", upload, async (req, res) => {
-  // const { caption, nama } = req.body;
+app.post("/postLastStory", upload, async (req, res) => {
+  const { caption } = req.body;
 
   // Validasi input
-  // if (!req.file) {
-  //   return res.status(400).json({ message: "No file uploaded." });
-  // }
-  // if (!caption || !nama) {
-  //   return res.status(400).json({ message: "Nama is required." });
-  // }
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded." });
+  }
+  if (!caption) {
+    return res.status(400).json({ message: "Caption is required." });
+  }
 
   try {
     // Fungsi untuk mengunggah gambar ke Cloudinary
@@ -1122,16 +1122,18 @@ app.post("/postSampul", upload, async (req, res) => {
     const cloudinaryResult = await uploadToCloudinary();
 
     // Simpan metadata ke Firestore
-    const docRef = await addDoc(collection(dbLocale, "sampul"), {
+    const docRef = await addDoc(collection(dbLocale, "lastStory"), {
       imageUrl: cloudinaryResult.secure_url,
+      caption,
       timestamp: serverTimestamp(),
     });
 
     // Response berhasil
     res.status(201).json({
-      message: "Sampul added successfully",
+      message: "Last Story added successfully",
       id: docRef.id,
       imageUrl: cloudinaryResult.secure_url,
+      caption,
     });
   } catch (error) {
     // Log error dan kirim response error
@@ -1143,15 +1145,15 @@ app.post("/postSampul", upload, async (req, res) => {
   }
 });
 
-app.put("/updateSampul/:id", upload, async (req, res) => {
+app.put("/updateLastStory/:id", upload, async (req, res) => {
   const { id } = req.params;
-  const { imageUrl } = req.body;
+  const { imageUrl, caption } = req.body;
 
   try {
     // Validasi keberadaan dokumen
-    const docRef = doc(dbLocale, "sampul", id);
+    const docRef = doc(dbLocale, "secondStory", id);
 
-    let updatedData = { imageUrl };
+    let updatedData = { imageUrl, caption };
 
     // Jika ada file, upload ke Cloudinary dan tambahkan URL baru
     if (req.file) {
@@ -1184,7 +1186,7 @@ app.put("/updateSampul/:id", upload, async (req, res) => {
 
     // Response berhasil
     res.status(200).json({
-      message: "Mempelai Pria updated successfully.",
+      message: "Last Story updated successfully.",
       id,
       ...updatedData,
     });
@@ -1198,16 +1200,16 @@ app.put("/updateSampul/:id", upload, async (req, res) => {
   }
 });
 
-app.get("/getSampul", async (req, res) => {
+app.get("/getLastStory", async (req, res) => {
   try {
-    const snapshot = await getDocs(collection(dbLocale, "sampul"));
+    const snapshot = await getDocs(collection(dbLocale, "lastStory"));
     const maps = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
     res.status(200).json(maps);
   } catch (error) {
-    console.error("Error fetching Sampul:", error);
+    console.error("Error fetching Second story:", error);
     res.status(500).json({ message: "Failed to fetch sampul" });
   }
 });
