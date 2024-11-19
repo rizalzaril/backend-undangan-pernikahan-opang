@@ -767,13 +767,13 @@ app.post("/postSampul", upload, async (req, res) => {
 
 app.put("/updateSampul/:id", upload, async (req, res) => {
   const { id } = req.params;
-  // const { caption, nama } = req.body;
+  const { imageUrl } = req.body;
 
   try {
     // Validasi keberadaan dokumen
     const docRef = doc(dbLocale, "sampul", id);
 
-    // let updatedData = { caption, nama };
+    let updatedData = { imageUrl };
 
     // Jika ada file, upload ke Cloudinary dan tambahkan URL baru
     if (req.file) {
@@ -795,7 +795,7 @@ app.put("/updateSampul/:id", upload, async (req, res) => {
       };
 
       const cloudinaryResult = await uploadToCloudinary();
-      imageUrl = cloudinaryResult.secure_url;
+      updatedData.imageUrl = cloudinaryResult.secure_url;
     }
 
     // Update Firestore
