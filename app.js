@@ -895,13 +895,13 @@ app.post("/postFirstStory", upload, async (req, res) => {
 
 app.put("/updateFirstStory/:id", upload, async (req, res) => {
   const { id } = req.params;
-  const { imageUrl, caption } = req.body;
+  const { caption } = req.body;
 
   try {
     // Validasi keberadaan dokumen
     const docRef = doc(dbLocale, "firstStory", id);
 
-    let updatedData = { imageUrl, caption };
+    let updatedData = { caption };
 
     // Jika ada file, upload ke Cloudinary dan tambahkan URL baru
     if (req.file) {
@@ -1021,13 +1021,13 @@ app.post("/postSecondStory", upload, async (req, res) => {
 
 app.put("/updateSecondStory/:id", upload, async (req, res) => {
   const { id } = req.params;
-  const { caption, imageUrl } = req.body;
+  const { caption } = req.body;
 
   try {
     // Validasi keberadaan dokumen
     const docRef = doc(dbLocale, "secondStory", id);
 
-    let updatedData = { imageUrl, caption };
+    let updatedData = { caption };
 
     // Jika ada file, upload ke Cloudinary dan tambahkan URL baru
     if (req.file) {
@@ -1147,13 +1147,13 @@ app.post("/postLastStory", upload, async (req, res) => {
 
 app.put("/updateLastStory/:id", upload, async (req, res) => {
   const { id } = req.params;
-  const { caption, imageUrl } = req.body;
+  const { caption } = req.body;
 
   try {
     // Validasi keberadaan dokumen
     const docRef = doc(dbLocale, "lastStory", id);
 
-    let updatedData = { imageUrl, caption };
+    let updatedData = { caption };
 
     // Jika ada file, upload ke Cloudinary dan tambahkan URL baru
     if (req.file) {
