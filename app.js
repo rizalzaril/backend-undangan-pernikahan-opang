@@ -1151,7 +1151,7 @@ app.put("/updateLastStory/:id", upload, async (req, res) => {
 
   try {
     // Validasi keberadaan dokumen
-    const docRef = doc(dbLocale, "secondStory", id);
+    const docRef = doc(dbLocale, "lastStory", id);
 
     let updatedData = { imageUrl, caption };
 
