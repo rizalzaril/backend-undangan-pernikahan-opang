@@ -1021,7 +1021,7 @@ app.post("/postSecondStory", upload, async (req, res) => {
 
 app.put("/updateSecondStory/:id", upload, async (req, res) => {
   const { id } = req.params;
-  const { imageUrl, caption } = req.body;
+  const { caption, imageUrl } = req.body;
 
   try {
     // Validasi keberadaan dokumen
@@ -1147,7 +1147,7 @@ app.post("/postLastStory", upload, async (req, res) => {
 
 app.put("/updateLastStory/:id", upload, async (req, res) => {
   const { id } = req.params;
-  const { imageUrl, caption } = req.body;
+  const { caption, imageUrl } = req.body;
 
   try {
     // Validasi keberadaan dokumen
