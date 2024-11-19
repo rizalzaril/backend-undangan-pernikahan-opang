@@ -872,6 +872,7 @@ app.post("/postFirstStory", upload, async (req, res) => {
     // Simpan metadata ke Firestore
     const docRef = await addDoc(collection(dbLocale, "firstStory"), {
       imageUrl: cloudinaryResult.secure_url,
+      caption,
       timestamp: serverTimestamp(),
     });
 
