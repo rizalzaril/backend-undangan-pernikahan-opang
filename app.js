@@ -964,7 +964,7 @@ app.get("/getFirstStory", async (req, res) => {
 
 // SECOND STORY \\
 
-app.post("/postSecomdStory", upload, async (req, res) => {
+app.post("/postSecondStory", upload, async (req, res) => {
   const { caption } = req.body;
 
   // Validasi input
