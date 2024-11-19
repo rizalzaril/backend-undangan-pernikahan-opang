@@ -710,6 +710,130 @@ app.get("/getMempelaiWanita", async (req, res) => {
   }
 });
 
+// ************************************ SAMPUL SETTINGS ******************************** \\
+
+app.post("/postSampul", upload, async (req, res) => {
+  // const { caption, nama } = req.body;
+
+  // Validasi input
+  // if (!req.file) {
+  //   return res.status(400).json({ message: "No file uploaded." });
+  // }
+  // if (!caption || !nama) {
+  //   return res.status(400).json({ message: "Nama is required." });
+  // }
+
+  try {
+    // Fungsi untuk mengunggah gambar ke Cloudinary
+    const uploadToCloudinary = () => {
+      return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { resource_type: "auto" }, // Auto-detect file type
+          (error, result) => {
+            if (error) {
+              return reject(new Error("Failed to upload image to Cloudinary"));
+            }
+            resolve(result);
+          }
+        );
+        uploadStream.end(req.file.buffer);
+      });
+    };
+
+    // Upload ke Cloudinary
+    const cloudinaryResult = await uploadToCloudinary();
+
+    // Simpan metadata ke Firestore
+    const docRef = await addDoc(collection(dbLocale, "sampul"), {
+      imageUrl: cloudinaryResult.secure_url,
+      timestamp: serverTimestamp(),
+    });
+
+    // Response berhasil
+    res.status(201).json({
+      message: "Sampul added successfully",
+      id: docRef.id,
+      imageUrl: cloudinaryResult.secure_url,
+    });
+  } catch (error) {
+    // Log error dan kirim response error
+    console.error("Error:", error.message);
+    res.status(500).json({
+      message: "An error occurred while processing your request.",
+      error: error.message,
+    });
+  }
+});
+
+app.put("/updateSampul/:id", upload, async (req, res) => {
+  const { id } = req.params;
+  // const { caption, nama } = req.body;
+
+  try {
+    // Validasi keberadaan dokumen
+    const docRef = doc(dbLocale, "sampul", id);
+
+    // let updatedData = { caption, nama };
+
+    // Jika ada file, upload ke Cloudinary dan tambahkan URL baru
+    if (req.file) {
+      const uploadToCloudinary = () => {
+        return new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            { resource_type: "auto" },
+            (error, result) => {
+              if (error) {
+                return reject(
+                  new Error("Failed to upload image to Cloudinary")
+                );
+              }
+              resolve(result);
+            }
+          );
+          uploadStream.end(req.file.buffer);
+        });
+      };
+
+      const cloudinaryResult = await uploadToCloudinary();
+      updatedData.imageUrl = cloudinaryResult.secure_url;
+    }
+
+    // Update Firestore
+    await updateDoc(docRef, {
+      ...updatedData,
+      timestamp: serverTimestamp(), // Perbarui timestamp
+    });
+
+    // Response berhasil
+    res.status(200).json({
+      message: "Mempelai Pria updated successfully.",
+      id,
+      ...updatedData,
+    });
+  } catch (error) {
+    // Log error dan kirim response error
+    console.error("Error:", error.message);
+    res.status(500).json({
+      message: "An error occurred while processing your request.",
+      error: error.message,
+    });
+  }
+});
+
+app.get("/getSampul", async (req, res) => {
+  try {
+    const snapshot = await getDocs(collection(dbLocale, "sampul"));
+    const maps = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    res.status(200).json(maps);
+  } catch (error) {
+    console.error("Error fetching Sampul:", error);
+    res.status(500).json({ message: "Failed to fetch sampul" });
+  }
+});
+
 // Server setup
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
