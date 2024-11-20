@@ -1214,6 +1214,70 @@ app.get("/getLastStory", async (req, res) => {
   }
 });
 
+// *************** REKENING SETTING *********** \\
+
+// First Rekening \\
+app.post("/postFirstRekening", async (req, res) => {
+  const { nama, norek } = req.body;
+
+  if (!nama || norek) {
+    return res.status(400).json({ message: "All fields are required." });
+  }
+
+  try {
+    const docRef = await addDoc(collection(dbLocale, "firstRekening"), {
+      url,
+      timestamp: serverTimestamp(),
+    });
+
+    res
+      .status(201)
+      .json({ message: "Rekening Pertama added successfully", id: docRef.id });
+  } catch (error) {
+    console.error("Error adding document:", error);
+    res.status(500).json({ message: "Failed to add data" });
+  }
+});
+
+// Read: Get all maps  from Firestore (no auth required)
+app.get("/getFirstRekening", async (req, res) => {
+  try {
+    const snapshot = await getDocs(collection(dbLocale, "firstRekening"));
+    const maps = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    res.status(200).json(maps);
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).json({ message: "Failed to fetch data" });
+  }
+});
+
+// Update: Update an maps status and message
+app.put("/updateFirstRekening/:id", async (req, res) => {
+  const { id } = req.params;
+  const { nama, norek } = req.body;
+
+  if (!nama || norek) {
+    return res
+      .status(400)
+      .json({ message: "Status and message are required." });
+  }
+
+  try {
+    const docRef = doc(dbLocale, "firstRekening", id);
+    await updateDoc(docRef, {
+      url,
+      timestamp: serverTimestamp(),
+    });
+    res.status(200).json({ message: "Rekening Pertama updated successfully" });
+  } catch (error) {
+    console.error("Error updating document:", error);
+    res.status(500).json({ message: "Failed to update data" });
+  }
+});
+
 // Server setup
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
