@@ -1377,9 +1377,9 @@ app.get("/getFirstRekening", async (req, res) => {
 // Update: Update an maps status and message
 app.put("/updateFirstRekening/:id", async (req, res) => {
   const { id } = req.params;
-  const { namaRekening, nomorRekening } = req.body;
+  const { namaRekening, nomorRekening, bankId } = req.body;
 
-  if (!namaRekening || !nomorRekening) {
+  if (!namaRekening || !nomorRekening || !bankId) {
     return res
       .status(400)
       .json({ message: "Status and message are required." });
@@ -1390,6 +1390,7 @@ app.put("/updateFirstRekening/:id", async (req, res) => {
     await updateDoc(docRef, {
       namaRekening,
       nomorRekening,
+      bankId,
       timestamp: serverTimestamp(),
     });
     res.status(200).json({ message: "Rekening Pertama updated successfully" });
