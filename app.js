@@ -1316,22 +1316,7 @@ app.post("/postFirstRekening", async (req, res) => {
   }
 });
 
-// Read: Get all maps  from Firestore (no auth required)
-// app.get("/getFirstRekening", async (req, res) => {
-//   try {
-//     const snapshot = await getDocs(collection(dbLocale, "firstRekening"));
-//     const maps = snapshot.docs.map((doc) => ({
-//       id: doc.id,
-//       ...doc.data(),
-//     }));
-//     res.status(200).json(maps);
-//   } catch (error) {
-//     console.error("Error fetching data:", error);
-//     res.status(500).json({ message: "Failed to fetch data" });
-//   }
-// });
-
-// get first rekekong join bank \\
+// get first rekening join bank \\
 app.get("/getFirstRekening", async (req, res) => {
   try {
     // Fetch firstRekening data
@@ -1401,11 +1386,12 @@ app.put("/updateFirstRekening/:id", async (req, res) => {
   }
 });
 
-// First Rekening \\
-app.post("/postSecondRekening", async (req, res) => {
-  const { namaRekening, nomorRekening } = req.body;
+// Second Rekening \\
 
-  if (!namaRekening || !nomorRekening) {
+app.post("/postSecondRekening", async (req, res) => {
+  const { namaRekening, nomorRekening, bankId } = req.body;
+
+  if (!namaRekening || !nomorRekening || !bankId) {
     return res.status(400).json({ message: "All fields are required." });
   }
 
@@ -1413,6 +1399,7 @@ app.post("/postSecondRekening", async (req, res) => {
     const docRef = await addDoc(collection(dbLocale, "secondRekening"), {
       namaRekening,
       nomorRekening,
+      bankId,
       timestamp: serverTimestamp(),
     });
 
@@ -1421,6 +1408,7 @@ app.post("/postSecondRekening", async (req, res) => {
       id: docRef.id,
       namaRekening,
       nomorRekening,
+      bankId,
     });
   } catch (error) {
     console.error("Error adding document:", error);
@@ -1428,27 +1416,56 @@ app.post("/postSecondRekening", async (req, res) => {
   }
 });
 
-// Read: Get all data  from Firestore (no auth required)
+// get first rekening join bank \\
 app.get("/getSecondRekening", async (req, res) => {
   try {
-    const snapshot = await getDocs(collection(dbLocale, "secondRekening"));
-    const maps = snapshot.docs.map((doc) => ({
+    // Fetch firstRekening data
+    const secondRekeningSnapshot = await getDocs(
+      collection(dbLocale, "secondRekening")
+    );
+    const secondRekeningData = secondRekeningSnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
-    res.status(200).json(maps);
+
+    // Fetch namaBank data
+    const namaBankSnapshot = await getDocs(collection(dbLocale, "namaBank"));
+    const namaBankData = namaBankSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    // Log data to check if bankId is now available
+    console.log("Second Rekening Data:", secondRekeningData);
+    console.log("Nama Bank Data:", namaBankData);
+
+    // Join the two collections based on bankId from firstRekening and id from namaBank
+    const joinedData = secondRekeningData.map((rekening) => {
+      console.log(`Matching bankId: ${rekening.bankId} with namaBank id`);
+      // Find the corresponding bank in namaBank collection
+      const bank = namaBankData.find((bank) => bank.id === rekening.bankId);
+      console.log(`Found bank:`, bank);
+      return {
+        ...rekening,
+        bankName: bank ? bank.namaBank : null, // Use 'namaBank' as the bank's name
+        bankLogo: bank ? bank.imageUrl : null,
+      };
+    });
+
+    // Send the combined result
+    res.status(200).json(joinedData);
   } catch (error) {
     console.error("Error fetching data:", error);
     res.status(500).json({ message: "Failed to fetch data" });
   }
 });
 
-// Update: Update an data status and message
+// Update: Update an maps status and message
 app.put("/updateSecondRekening/:id", async (req, res) => {
   const { id } = req.params;
-  const { namaRekening, nomorRekening } = req.body;
+  const { namaRekening, nomorRekening, bankId } = req.body;
 
-  if (!namaRekening || !nomorRekening) {
+  if (!namaRekening || !nomorRekening || !bankId) {
     return res
       .status(400)
       .json({ message: "Status and message are required." });
@@ -1459,6 +1476,7 @@ app.put("/updateSecondRekening/:id", async (req, res) => {
     await updateDoc(docRef, {
       namaRekening,
       nomorRekening,
+      bankId,
       timestamp: serverTimestamp(),
     });
     res.status(200).json({ message: "Rekening Kedua updated successfully" });
