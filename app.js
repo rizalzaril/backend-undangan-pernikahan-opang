@@ -1363,6 +1363,7 @@ app.get("/getFirstRekening", async (req, res) => {
       return {
         ...rekening,
         bankName: bank ? bank.namaBank : null, // Use 'namaBank' as the bank's name
+        bankLogo: bank ? bank.imageUrl : null,
       };
     });
 
