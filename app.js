@@ -1216,6 +1216,77 @@ app.get("/getLastStory", async (req, res) => {
 
 // *************** REKENING SETTING *********** \\
 
+// setting bank \\
+
+app.post("/postBank", upload, async (req, res) => {
+  const { namaBank } = req.body;
+
+  // Validasi input
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded." });
+  }
+  if (!namaBank) {
+    return res.status(400).json({ message: "nama Bank is required." });
+  }
+
+  try {
+    // Fungsi untuk mengunggah gambar ke Cloudinary
+    const uploadToCloudinary = () => {
+      return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { resource_type: "auto" }, // Auto-detect file type
+          (error, result) => {
+            if (error) {
+              return reject(new Error("Failed to upload image to Cloudinary"));
+            }
+            resolve(result);
+          }
+        );
+        uploadStream.end(req.file.buffer);
+      });
+    };
+
+    // Upload ke Cloudinary
+    const cloudinaryResult = await uploadToCloudinary();
+
+    // Simpan metadata ke Firestore
+    const docRef = await addDoc(collection(dbLocale, "namaBank"), {
+      imageUrl: cloudinaryResult.secure_url,
+      namaBank,
+      timestamp: serverTimestamp(),
+    });
+
+    // Response berhasil
+    res.status(201).json({
+      message: "First Story added successfully",
+      id: docRef.id,
+      imageUrl: cloudinaryResult.secure_url,
+      caption,
+    });
+  } catch (error) {
+    // Log error dan kirim response error
+    console.error("Error:", error.message);
+    res.status(500).json({
+      message: "An error occurred while processing your request.",
+      error: error.message,
+    });
+  }
+});
+
+app.get("/getBank", async (req, res) => {
+  try {
+    const snapshot = await getDocs(collection(dbLocale, "namaBank"));
+    const maps = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    res.status(200).json(maps);
+  } catch (error) {
+    console.error("Error fetching Sampul:", error);
+    res.status(500).json({ message: "Failed to fetch sampul" });
+  }
+});
+
 // First Rekening \\
 app.post("/postFirstRekening", async (req, res) => {
   const { namaRekening, nomorRekening } = req.body;
