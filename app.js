@@ -1258,10 +1258,10 @@ app.post("/postBank", upload, async (req, res) => {
 
     // Response berhasil
     res.status(201).json({
-      message: "First Story added successfully",
+      message: "Bank added successfully",
       id: docRef.id,
       imageUrl: cloudinaryResult.secure_url,
-      caption,
+      namaBank,
     });
   } catch (error) {
     // Log error dan kirim response error
@@ -1289,9 +1289,9 @@ app.get("/getBank", async (req, res) => {
 
 // First Rekening \\
 app.post("/postFirstRekening", async (req, res) => {
-  const { namaRekening, nomorRekening } = req.body;
+  const { namaRekening, nomorRekening, bankId } = req.body;
 
-  if (!namaRekening || !nomorRekening) {
+  if (!namaRekening || !nomorRekening || !bankId) {
     return res.status(400).json({ message: "All fields are required." });
   }
 
@@ -1299,6 +1299,7 @@ app.post("/postFirstRekening", async (req, res) => {
     const docRef = await addDoc(collection(dbLocale, "firstRekening"), {
       namaRekening,
       nomorRekening,
+      bankId,
       timestamp: serverTimestamp(),
     });
 
@@ -1307,6 +1308,7 @@ app.post("/postFirstRekening", async (req, res) => {
       id: docRef.id,
       namaRekening,
       nomorRekening,
+      bankId,
     });
   } catch (error) {
     console.error("Error adding document:", error);
@@ -1315,14 +1317,57 @@ app.post("/postFirstRekening", async (req, res) => {
 });
 
 // Read: Get all maps  from Firestore (no auth required)
+// app.get("/getFirstRekening", async (req, res) => {
+//   try {
+//     const snapshot = await getDocs(collection(dbLocale, "firstRekening"));
+//     const maps = snapshot.docs.map((doc) => ({
+//       id: doc.id,
+//       ...doc.data(),
+//     }));
+//     res.status(200).json(maps);
+//   } catch (error) {
+//     console.error("Error fetching data:", error);
+//     res.status(500).json({ message: "Failed to fetch data" });
+//   }
+// });
+
+// get first rekekong join bank \\
 app.get("/getFirstRekening", async (req, res) => {
   try {
-    const snapshot = await getDocs(collection(dbLocale, "firstRekening"));
-    const maps = snapshot.docs.map((doc) => ({
+    // Fetch firstRekening data
+    const firstRekeningSnapshot = await getDocs(
+      collection(dbLocale, "firstRekening")
+    );
+    const firstRekeningData = firstRekeningSnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
-    res.status(200).json(maps);
+
+    // Fetch namaBank data
+    const namaBankSnapshot = await getDocs(collection(dbLocale, "namaBank"));
+    const namaBankData = namaBankSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    // Log data to check if bankId is now available
+    console.log("First Rekening Data:", firstRekeningData);
+    console.log("Nama Bank Data:", namaBankData);
+
+    // Join the two collections based on bankId from firstRekening and id from namaBank
+    const joinedData = firstRekeningData.map((rekening) => {
+      console.log(`Matching bankId: ${rekening.bankId} with namaBank id`);
+      // Find the corresponding bank in namaBank collection
+      const bank = namaBankData.find((bank) => bank.id === rekening.bankId);
+      console.log(`Found bank:`, bank);
+      return {
+        ...rekening,
+        bankName: bank ? bank.namaBank : null, // Use 'namaBank' as the bank's name
+      };
+    });
+
+    // Send the combined result
+    res.status(200).json(joinedData);
   } catch (error) {
     console.error("Error fetching data:", error);
     res.status(500).json({ message: "Failed to fetch data" });
