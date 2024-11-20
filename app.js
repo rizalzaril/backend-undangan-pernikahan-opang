@@ -1220,7 +1220,7 @@ app.get("/getLastStory", async (req, res) => {
 app.post("/postFirstRekening", async (req, res) => {
   const { nama, norek } = req.body;
 
-  if (!nama || norek) {
+  if (!nama || !norek) {
     return res.status(400).json({ message: "All fields are required." });
   }
 
@@ -1259,7 +1259,7 @@ app.put("/updateFirstRekening/:id", async (req, res) => {
   const { id } = req.params;
   const { nama, norek } = req.body;
 
-  if (!nama || norek) {
+  if (!nama || !norek) {
     return res
       .status(400)
       .json({ message: "Status and message are required." });
