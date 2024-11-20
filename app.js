@@ -1226,7 +1226,8 @@ app.post("/postFirstRekening", async (req, res) => {
 
   try {
     const docRef = await addDoc(collection(dbLocale, "firstRekening"), {
-      url,
+      nama,
+      norek,
       timestamp: serverTimestamp(),
     });
 
@@ -1268,7 +1269,8 @@ app.put("/updateFirstRekening/:id", async (req, res) => {
   try {
     const docRef = doc(dbLocale, "firstRekening", id);
     await updateDoc(docRef, {
-      url,
+      nama,
+      norek,
       timestamp: serverTimestamp(),
     });
     res.status(200).json({ message: "Rekening Pertama updated successfully" });
