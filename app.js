@@ -1218,22 +1218,25 @@ app.get("/getLastStory", async (req, res) => {
 
 // First Rekening \\
 app.post("/postFirstRekening", async (req, res) => {
-  const { nama, norek } = req.body;
+  const { namaRekening, nomorRekening } = req.body;
 
-  if (!nama || !norek) {
+  if (!namaRekening || !nomorRekening) {
     return res.status(400).json({ message: "All fields are required." });
   }
 
   try {
     const docRef = await addDoc(collection(dbLocale, "firstRekening"), {
-      nama,
-      norek,
+      namaRekening,
+      nomorRekening,
       timestamp: serverTimestamp(),
     });
 
-    res
-      .status(201)
-      .json({ message: "Rekening Pertama added successfully", id: docRef.id });
+    res.status(201).json({
+      message: "Rekening Pertama added successfully",
+      id: docRef.id,
+      namaRekening,
+      nomorRekening,
+    });
   } catch (error) {
     console.error("Error adding document:", error);
     res.status(500).json({ message: "Failed to add data" });
@@ -1258,9 +1261,9 @@ app.get("/getFirstRekening", async (req, res) => {
 // Update: Update an maps status and message
 app.put("/updateFirstRekening/:id", async (req, res) => {
   const { id } = req.params;
-  const { nama, norek } = req.body;
+  const { namaRekening, nomorRekening } = req.body;
 
-  if (!nama || !norek) {
+  if (!namaRekening || !nomorRekening) {
     return res
       .status(400)
       .json({ message: "Status and message are required." });
@@ -1269,11 +1272,78 @@ app.put("/updateFirstRekening/:id", async (req, res) => {
   try {
     const docRef = doc(dbLocale, "firstRekening", id);
     await updateDoc(docRef, {
-      nama,
-      norek,
+      namaRekening,
+      nomorRekening,
       timestamp: serverTimestamp(),
     });
     res.status(200).json({ message: "Rekening Pertama updated successfully" });
+  } catch (error) {
+    console.error("Error updating document:", error);
+    res.status(500).json({ message: "Failed to update data" });
+  }
+});
+
+// First Rekening \\
+app.post("/postSecondRekening", async (req, res) => {
+  const { namaRekening, nomorRekening } = req.body;
+
+  if (!namaRekening || !nomorRekening) {
+    return res.status(400).json({ message: "All fields are required." });
+  }
+
+  try {
+    const docRef = await addDoc(collection(dbLocale, "secondRekening"), {
+      namaRekening,
+      nomorRekening,
+      timestamp: serverTimestamp(),
+    });
+
+    res.status(201).json({
+      message: "Rekening Kedua added successfully",
+      id: docRef.id,
+      namaRekening,
+      nomorRekening,
+    });
+  } catch (error) {
+    console.error("Error adding document:", error);
+    res.status(500).json({ message: "Failed to add data" });
+  }
+});
+
+// Read: Get all data  from Firestore (no auth required)
+app.get("/getSecondRekening", async (req, res) => {
+  try {
+    const snapshot = await getDocs(collection(dbLocale, "secondRekening"));
+    const maps = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    res.status(200).json(maps);
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).json({ message: "Failed to fetch data" });
+  }
+});
+
+// Update: Update an data status and message
+app.put("/updateSecondRekening/:id", async (req, res) => {
+  const { id } = req.params;
+  const { namaRekening, nomorRekening } = req.body;
+
+  if (!namaRekening || !nomorRekening) {
+    return res
+      .status(400)
+      .json({ message: "Status and message are required." });
+  }
+
+  try {
+    const docRef = doc(dbLocale, "secondRekening", id);
+    await updateDoc(docRef, {
+      namaRekening,
+      nomorRekening,
+      timestamp: serverTimestamp(),
+    });
+    res.status(200).json({ message: "Rekening Kedua updated successfully" });
   } catch (error) {
     console.error("Error updating document:", error);
     res.status(500).json({ message: "Failed to update data" });
