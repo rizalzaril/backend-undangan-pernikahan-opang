@@ -280,18 +280,16 @@ app.get("/getCarousel", async (req, res) => {
   }
 });
 
-// Delete an image by ID
-app.delete("/deleteCarousel/:id", async (req, res) => {
+app.delete("/deleteCarouselData/:id", async (req, res) => {
   const { id } = req.params;
   try {
-    await deleteDoc(doc(dbLocale, "imagecarousel", id));
+    await deleteDoc(doc(dbLocale, "imageCarousel", id));
     res.status(200).json({ message: "Image deleted successfully" });
   } catch (error) {
     console.error("Error deleting image:", error);
     res.status(500).json({ message: "Failed to delete image" });
   }
 });
-
 ///////////////////////////////////////////////////// ROUTES DATA TAMU ////////////////////////////////////////////////////////////////////
 
 // Add guest
