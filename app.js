@@ -145,6 +145,8 @@ app.delete("/invitations/:id", async (req, res) => {
   }
 });
 
+// ******************** GALLERY SETTING ***************************** \\
+
 // Function to upload to Cloudinary with detailed error handling
 app.post("/uploadGallery", upload, async (req, res) => {
   if (!req.file) {
@@ -210,6 +212,79 @@ app.delete("/deleteGallery/:id", async (req, res) => {
   const { id } = req.params;
   try {
     await deleteDoc(doc(dbLocale, "imageGallery", id));
+    res.status(200).json({ message: "Image deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting image:", error);
+    res.status(500).json({ message: "Failed to delete image" });
+  }
+});
+
+// ******************** GALLERY CAROUSEL SETTING ***************************** \\
+
+app.post("/uploadCarousel", upload, async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded." });
+  }
+
+  try {
+    // Function to upload image to Cloudinary
+    const uploadToCloudinary = () => {
+      return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { resource_type: "auto" }, // Auto-detect file type
+          (error, result) => {
+            if (error) {
+              return reject(new Error("Failed to upload image to Cloudinary"));
+            }
+            resolve(result);
+          }
+        );
+        uploadStream.end(req.file.buffer);
+      });
+    };
+
+    const cloudinaryResult = await uploadToCloudinary();
+
+    // Save metadata to Firestore
+    const docRef = await addDoc(collection(dbLocale, "imageCarousel"), {
+      imageUrl: cloudinaryResult.secure_url,
+      timestamp: serverTimestamp(),
+    });
+
+    res.status(201).json({
+      message: "Carousel Photo added successfully",
+      id: docRef.id,
+      imageUrl: cloudinaryResult.secure_url,
+    });
+  } catch (error) {
+    console.error("Error uploading to Cloudinary:", error);
+    res
+      .status(500)
+      .json({ message: "Error uploading image", error: error.message });
+  }
+});
+
+// Get images from Firestore
+app.get("/getCarousel", async (req, res) => {
+  try {
+    const snapshot = await getDocs(collection(dbLocale, "imageCarousel"));
+    const images = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      imageUrl: doc.data().imageUrl,
+      timestamp: doc.data().timestamp,
+    }));
+    res.status(200).json(images);
+  } catch (error) {
+    console.error("Error retrieving images:", error);
+    res.status(500).json({ message: "Failed to retrieve images" });
+  }
+});
+
+// Delete an image by ID
+app.delete("/deleteCarousel/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    await deleteDoc(doc(dbLocale, "imagecarousel", id));
     res.status(200).json({ message: "Image deleted successfully" });
   } catch (error) {
     console.error("Error deleting image:", error);
