@@ -402,9 +402,9 @@ app.put("/updateJadwalAkad/:id", async (req, res) => {
 
 // ********** JADWAL RESEPSI ********** \\
 app.post("/postJadwalResepsi", async (req, res) => {
-  const { tanggal, jam } = req.body;
+  const { tanggal, jam, jamSelesai } = req.body;
 
-  if (!tanggal || !jam) {
+  if (!tanggal || !jam || !jamSelesai) {
     return res.status(400).json({ message: "All fields are required." });
   }
 
@@ -412,6 +412,7 @@ app.post("/postJadwalResepsi", async (req, res) => {
     const docRef = await addDoc(collection(dbLocale, "jadwalResepsi"), {
       tanggal,
       jam,
+      jamSelesai,
       timestamp: serverTimestamp(),
     });
 
@@ -442,9 +443,9 @@ app.get("/getJadwalResepsi", async (req, res) => {
 // Update: Update an jadwal akad status and message
 app.put("/updateJadwalResepsi/:id", async (req, res) => {
   const { id } = req.params;
-  const { tanggal, jam } = req.body;
+  const { tanggal, jam, jamSelesai } = req.body;
 
-  if (!tanggal || !jam) {
+  if (!tanggal || !jam || !jamSelesai) {
     return res
       .status(400)
       .json({ message: "Status and message are required." });
@@ -455,6 +456,7 @@ app.put("/updateJadwalResepsi/:id", async (req, res) => {
     await updateDoc(docRef, {
       tanggal,
       jam,
+      jamSelesai,
       timestamp: serverTimestamp(),
     });
     res.status(200).json({ message: "Jadwal Resepsi updated successfully" });
