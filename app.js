@@ -338,7 +338,7 @@ app.get("/getTamu", async (req, res) => {
 
 // Create: Add jadwal akad data to Firestore
 app.post("/postJadwalAkad", async (req, res) => {
-  const { tanggal, jam } = req.body;
+  const { tanggal, jam, alamat } = req.body;
 
   if (!tanggal || !jam || alamat) {
     return res.status(400).json({ message: "All fields are required." });
