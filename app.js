@@ -340,7 +340,7 @@ app.get("/getTamu", async (req, res) => {
 app.post("/postJadwalAkad", async (req, res) => {
   const { tanggal, jam, alamat } = req.body;
 
-  if (!tanggal || !jam || alamat) {
+  if (!tanggal || !jam || !alamat) {
     return res.status(400).json({ message: "All fields are required." });
   }
 
