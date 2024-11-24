@@ -1684,6 +1684,86 @@ app.post("/postSound", upload, async (req, res) => {
   }
 });
 
+app.get("/getSound", async (req, res) => {
+  try {
+    const snapshot = await getDocs(collection(dbLocale, "backsound"));
+    const maps = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    res.status(200).json(maps);
+  } catch (error) {
+    console.error("Error fetching Second story:", error);
+    res.status(500).json({ message: "Failed to fetch sampul" });
+  }
+});
+
+app.put("/updateSound/:id", upload, async (req, res) => {
+  const { id } = req.params; // ID dokumen backsound
+  const allowedFormats = ["audio/mpeg", "audio/wav"]; // MIME types for MP3 and WAV
+
+  try {
+    // Referensi ke dokumen di Firestore
+    const docRef = doc(dbLocale, "backsound", id);
+
+    // Periksa apakah dokumen ada
+    const docSnapshot = await getDoc(docRef);
+    if (!docSnapshot.exists()) {
+      return res.status(404).json({ message: "Backsound not found." });
+    }
+
+    let newFileUrl = docSnapshot.data().fileUrl; // Default: URL lama dari Firestore
+
+    // Jika file baru diunggah, validasi format dan upload ke Cloudinary
+    if (req.file) {
+      if (!allowedFormats.includes(req.file.mimetype)) {
+        return res.status(400).json({
+          message: "Invalid file format. Only MP3 and WAV are allowed.",
+        });
+      }
+
+      // Fungsi untuk mengunggah file baru ke Cloudinary
+      const uploadToCloudinary = () => {
+        return new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            { resource_type: "auto" }, // Auto-detect file type
+            (error, result) => {
+              if (error) {
+                return reject(new Error("Failed to upload file to Cloudinary"));
+              }
+              resolve(result);
+            }
+          );
+          uploadStream.end(req.file.buffer);
+        });
+      };
+
+      const cloudinaryResult = await uploadToCloudinary();
+      newFileUrl = cloudinaryResult.secure_url; // URL file baru
+    }
+
+    // Update dokumen di Firestore
+    await updateDoc(docRef, {
+      fileUrl: newFileUrl, // Update URL file
+      timestamp: serverTimestamp(), // Update timestamp
+    });
+
+    // Response berhasil
+    res.status(200).json({
+      message: "Backsound updated successfully.",
+      id,
+      fileUrl: newFileUrl,
+    });
+  } catch (error) {
+    // Log error dan kirim response error
+    console.error("Error:", error.message);
+    res.status(500).json({
+      message: "An error occurred while updating the backsound.",
+      error: error.message,
+    });
+  }
+});
+
 // Server setup
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
