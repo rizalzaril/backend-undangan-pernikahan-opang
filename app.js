@@ -1626,6 +1626,64 @@ app.put("/updateSecondRekening/:id", async (req, res) => {
   }
 });
 
+// *********************** BACK SOUND UPLOAD ************************ \\
+app.post("/postSound", upload, async (req, res) => {
+  // Validasi input
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded." });
+  }
+
+  // Validasi format file
+  const allowedFormats = ["audio/mpeg", "audio/wav"]; // MIME types for mp3 and wav
+  if (!allowedFormats.includes(req.file.mimetype)) {
+    return res
+      .status(400)
+      .json({ message: "Invalid file format. Only MP3 and WAV are allowed." });
+  }
+
+  try {
+    // Fungsi untuk mengunggah file ke Cloudinary
+    const uploadToCloudinary = () => {
+      return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { resource_type: "auto" }, // Auto-detect file type
+          (error, result) => {
+            if (error) {
+              return reject(new Error("Failed to upload file to Cloudinary"));
+            }
+            resolve(result);
+          }
+        );
+        uploadStream.end(req.file.buffer);
+      });
+    };
+
+    // Upload ke Cloudinary
+    const cloudinaryResult = await uploadToCloudinary();
+
+    // Simpan metadata ke Firestore
+    const docRef = await addDoc(collection(dbLocale, "backsound"), {
+      fileUrl: cloudinaryResult.secure_url,
+
+      timestamp: serverTimestamp(),
+    });
+
+    // Response berhasil
+    res.status(201).json({
+      message: "Backsound added successfully",
+      id: docRef.id,
+      fileUrl: cloudinaryResult.secure_url,
+    });
+  } catch (error) {
+    // Log error dan kirim response error
+    console.error("Error:", error.message);
+    res.status(500).json({
+      message: "An error occurred while processing your request.",
+      error: error.message,
+    });
+  }
+});
+
 // Server setup
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
