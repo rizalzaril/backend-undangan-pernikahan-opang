@@ -340,7 +340,7 @@ app.get("/getTamu", async (req, res) => {
 app.post("/postJadwalAkad", async (req, res) => {
   const { tanggal, jam } = req.body;
 
-  if (!tanggal || !jam) {
+  if (!tanggal || !jam || alamat) {
     return res.status(400).json({ message: "All fields are required." });
   }
 
@@ -348,6 +348,7 @@ app.post("/postJadwalAkad", async (req, res) => {
     const docRef = await addDoc(collection(dbLocale, "jadwalAkad"), {
       tanggal,
       jam,
+      alamat,
       timestamp: serverTimestamp(),
     });
 
@@ -378,7 +379,7 @@ app.get("/getJadwalAkad", async (req, res) => {
 // Update: Update an jadwal akad status and message
 app.put("/updateJadwalAkad/:id", async (req, res) => {
   const { id } = req.params;
-  const { tanggal, jam } = req.body;
+  const { tanggal, jam, alamat } = req.body;
 
   if (!tanggal || !jam) {
     return res
@@ -391,6 +392,7 @@ app.put("/updateJadwalAkad/:id", async (req, res) => {
     await updateDoc(docRef, {
       tanggal,
       jam,
+      alamat,
       timestamp: serverTimestamp(),
     });
     res.status(200).json({ message: "Jadwal Akad updated successfully" });
@@ -402,9 +404,9 @@ app.put("/updateJadwalAkad/:id", async (req, res) => {
 
 // ********** JADWAL RESEPSI ********** \\
 app.post("/postJadwalResepsi", async (req, res) => {
-  const { tanggal, jam, jamSelesai } = req.body;
+  const { tanggal, jam, jamSelesai, alamat } = req.body;
 
-  if (!tanggal || !jam || !jamSelesai) {
+  if (!tanggal || !jam || !jamSelesai || !alamat) {
     return res.status(400).json({ message: "All fields are required." });
   }
 
@@ -413,6 +415,7 @@ app.post("/postJadwalResepsi", async (req, res) => {
       tanggal,
       jam,
       jamSelesai,
+      alamat,
       timestamp: serverTimestamp(),
     });
 
@@ -443,7 +446,7 @@ app.get("/getJadwalResepsi", async (req, res) => {
 // Update: Update an jadwal akad status and message
 app.put("/updateJadwalResepsi/:id", async (req, res) => {
   const { id } = req.params;
-  const { tanggal, jam, jamSelesai } = req.body;
+  const { tanggal, jam, jamSelesai, alamat } = req.body;
 
   if (!tanggal || !jam || !jamSelesai) {
     return res
@@ -457,6 +460,7 @@ app.put("/updateJadwalResepsi/:id", async (req, res) => {
       tanggal,
       jam,
       jamSelesai,
+      alamat,
       timestamp: serverTimestamp(),
     });
     res.status(200).json({ message: "Jadwal Resepsi updated successfully" });
