@@ -470,7 +470,68 @@ app.put("/updateJadwalResepsi/:id", async (req, res) => {
   }
 });
 
-// *************** MAPS SETTING *********** \\
+// *************** MAPS AKAD SETTING *********** \\
+
+app.post("/postMapsAkad", async (req, res) => {
+  const { url } = req.body;
+
+  if (!url) {
+    return res.status(400).json({ message: "All fields are required." });
+  }
+
+  try {
+    const docRef = await addDoc(collection(dbLocale, "mapsAkad"), {
+      url,
+      timestamp: serverTimestamp(),
+    });
+
+    res.status(201).json({ message: "Maps added successfully", id: docRef.id });
+  } catch (error) {
+    console.error("Error adding document:", error);
+    res.status(500).json({ message: "Failed to add maps Resepsi" });
+  }
+});
+
+// Read: Get all maps  from Firestore (no auth required)
+app.get("/getMapsAkad", async (req, res) => {
+  try {
+    const snapshot = await getDocs(collection(dbLocale, "mapsAkad"));
+    const maps = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    res.status(200).json(maps);
+  } catch (error) {
+    console.error("Error fetching jadwal resepsi:", error);
+    res.status(500).json({ message: "Failed to fetch maps" });
+  }
+});
+
+// Update: Update an maps status and message
+app.put("/updateMapsAkad/:id", async (req, res) => {
+  const { id } = req.params;
+  const { url } = req.body;
+
+  if (!url) {
+    return res
+      .status(400)
+      .json({ message: "Status and message are required." });
+  }
+
+  try {
+    const docRef = doc(dbLocale, "mapsAkad", id);
+    await updateDoc(docRef, {
+      url,
+      timestamp: serverTimestamp(),
+    });
+    res.status(200).json({ message: "Maps updated successfully" });
+  } catch (error) {
+    console.error("Error updating document:", error);
+    res.status(500).json({ message: "Failed to update maps" });
+  }
+});
+
+// *************** MAPS RESEPSI SETTING *********** \\
 
 app.post("/postMaps", async (req, res) => {
   const { url } = req.body;
