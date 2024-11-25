@@ -334,6 +334,20 @@ app.get("/getTamu", async (req, res) => {
   }
 });
 
+// Delete tamu by ID
+app.delete("/deleteTamu/:id", async (req, res) => {
+  const { id } = req.params; // Get ID from URL params
+
+  try {
+    const tamuDoc = doc(dbLocale, "tamu", id); // Reference to the document
+    await deleteDoc(tamuDoc); // Delete the document
+    res.status(200).json({ message: "Tamu deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting tamu:", error);
+    res.status(500).json({ message: "Failed to delete tamu" });
+  }
+});
+
 // ******************************************* JADWAL ROUTE *****************************************\\
 
 // Create: Add jadwal akad data to Firestore
