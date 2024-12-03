@@ -611,13 +611,13 @@ app.put("/updateMaps/:id", async (req, res) => {
 // MEMPELAI PRIA \\
 
 app.post("/postMempelaiPria", upload, async (req, res) => {
-  const { caption, nama } = req.body;
+  const { caption, nama, linkInstagram } = req.body;
 
   // Validasi input
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded." });
   }
-  if (!caption || !nama) {
+  if (!caption || !nama || !linkInstagram) {
     return res.status(400).json({ message: "Nama is required." });
   }
 
@@ -646,6 +646,7 @@ app.post("/postMempelaiPria", upload, async (req, res) => {
       imageUrl: cloudinaryResult.secure_url,
       caption,
       nama,
+      linkInstagram,
       timestamp: serverTimestamp(),
     });
 
@@ -655,6 +656,7 @@ app.post("/postMempelaiPria", upload, async (req, res) => {
       id: docRef.id,
       imageUrl: cloudinaryResult.secure_url,
       caption,
+      linkInstagram,
       nama,
     });
   } catch (error) {
@@ -669,13 +671,13 @@ app.post("/postMempelaiPria", upload, async (req, res) => {
 
 app.put("/updateMempelaiPria/:id", upload, async (req, res) => {
   const { id } = req.params;
-  const { caption, nama } = req.body;
+  const { caption, nama, linkInstagram } = req.body;
 
   try {
     // Validasi keberadaan dokumen
     const docRef = doc(dbLocale, "mempelaiPria", id);
 
-    let updatedData = { caption, nama };
+    let updatedData = { caption, nama, linkInstagram };
 
     // Jika ada file, upload ke Cloudinary dan tambahkan URL baru
     if (req.file) {
@@ -739,13 +741,13 @@ app.get("/getMempelaiPria", async (req, res) => {
 // MEMPELAI WANITA \\
 
 app.post("/postMempelaiWanita", upload, async (req, res) => {
-  const { caption, nama } = req.body;
+  const { caption, nama, linkInstagram } = req.body;
 
   // Validasi input
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded." });
   }
-  if (!caption || !nama) {
+  if (!caption || !nama || !linkInstagram {
     return res.status(400).json({ message: "Nama is required." });
   }
 
@@ -797,13 +799,13 @@ app.post("/postMempelaiWanita", upload, async (req, res) => {
 
 app.put("/updateMempelaiWanita/:id", upload, async (req, res) => {
   const { id } = req.params;
-  const { caption, nama } = req.body;
+  const { caption, nama, linkInstagram } = req.body;
 
   try {
     // Validasi keberadaan dokumen
     const docRef = doc(dbLocale, "mempelaiWanita", id);
 
-    let updatedData = { caption, nama };
+    let updatedData = { caption, nama, linkInstagram };
 
     // Jika ada file, upload ke Cloudinary dan tambahkan URL baru
     if (req.file) {
