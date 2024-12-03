@@ -747,7 +747,7 @@ app.post("/postMempelaiWanita", upload, async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded." });
   }
-  if (!caption || !nama || !linkInstagram {
+  if (!caption || !nama || !linkInstagram) {
     return res.status(400).json({ message: "Nama is required." });
   }
 
