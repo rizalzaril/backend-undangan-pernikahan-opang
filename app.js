@@ -1642,6 +1642,133 @@ app.put("/updateSecondRekening/:id", async (req, res) => {
   }
 });
 
+// ************************** UPLOAD BARANG SHOPEE *********************** \\
+app.post("/postBarang", upload, async (req, res) => {
+  const { namaBarang, linkShopee } = req.body;
+
+  // Validasi input
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded." });
+  }
+  if (!namaBarang || !linkShopee) {
+    return res.status(400).json({ message: "Nama is required." });
+  }
+
+  try {
+    // Fungsi untuk mengunggah gambar ke Cloudinary
+    const uploadToCloudinary = () => {
+      return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { resource_type: "auto" }, // Auto-detect file type
+          (error, result) => {
+            if (error) {
+              return reject(new Error("Failed to upload image to Cloudinary"));
+            }
+            resolve(result);
+          }
+        );
+        uploadStream.end(req.file.buffer);
+      });
+    };
+
+    // Upload ke Cloudinary
+    const cloudinaryResult = await uploadToCloudinary();
+
+    // Simpan metadata ke Firestore
+    const docRef = await addDoc(collection(dbLocale, "giftBarang"), {
+      imageUrl: cloudinaryResult.secure_url,
+      namaBarang,
+      linkShopee,
+      timestamp: serverTimestamp(),
+    });
+
+    // Response berhasil
+    res.status(201).json({
+      message: "Barang added successfully",
+      id: docRef.id,
+      imageUrl: cloudinaryResult.secure_url,
+      namaBarang,
+      linkShopee,
+    });
+  } catch (error) {
+    // Log error dan kirim response error
+    console.error("Error:", error.message);
+    res.status(500).json({
+      message: "An error occurred while processing your request.",
+      error: error.message,
+    });
+  }
+});
+
+app.put("/updatebarang/:id", upload, async (req, res) => {
+  const { id } = req.params;
+  const { namaBarang, linkShopee } = req.body;
+
+  try {
+    // Validasi keberadaan dokumen
+    const docRef = doc(dbLocale, "giftBarang", id);
+
+    let updatedData = { namaBarang, linkShopee };
+
+    // Jika ada file, upload ke Cloudinary dan tambahkan URL baru
+    if (req.file) {
+      const uploadToCloudinary = () => {
+        return new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            { resource_type: "auto" },
+            (error, result) => {
+              if (error) {
+                return reject(
+                  new Error("Failed to upload image to Cloudinary")
+                );
+              }
+              resolve(result);
+            }
+          );
+          uploadStream.end(req.file.buffer);
+        });
+      };
+
+      const cloudinaryResult = await uploadToCloudinary();
+      updatedData.imageUrl = cloudinaryResult.secure_url;
+    }
+
+    // Update Firestore
+    await updateDoc(docRef, {
+      ...updatedData,
+      timestamp: serverTimestamp(), // Perbarui timestamp
+    });
+
+    // Response berhasil
+    res.status(200).json({
+      message: "Barang updated successfully.",
+      id,
+      ...updatedData,
+    });
+  } catch (error) {
+    // Log error dan kirim response error
+    console.error("Error:", error.message);
+    res.status(500).json({
+      message: "An error occurred while processing your request.",
+      error: error.message,
+    });
+  }
+});
+
+app.get("/getBarang", async (req, res) => {
+  try {
+    const snapshot = await getDocs(collection(dbLocale, "giftBarang"));
+    const maps = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    res.status(200).json(maps);
+  } catch (error) {
+    console.error("Error fetching jadwal resepsi:", error);
+    res.status(500).json({ message: "Failed to fetch jadwal resepsi" });
+  }
+});
+
 // *********************** BACK SOUND UPLOAD ************************ \\
 app.post("/postSound", upload, async (req, res) => {
   // Validasi input
