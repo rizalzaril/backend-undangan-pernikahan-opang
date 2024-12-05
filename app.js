@@ -1774,7 +1774,7 @@ app.get("/getBarangById/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const docRef = doc(dbLocale, "giftBarang", id);
-    const docSnap = await getDoc(docRef);
+    const docSnap = await getDocs(docRef);
 
     if (docSnap.exists()) {
       res.status(200).json({ id: docSnap.id, ...docSnap.data() });
