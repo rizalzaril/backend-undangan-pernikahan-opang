@@ -1773,8 +1773,9 @@ app.get("/getBarang", async (req, res) => {
 app.get("/getBarang/:id", async (req, res) => {
   const { id } = req.params;
   try {
+    // Gunakan getDoc untuk dokumen tunggal
     const docRef = doc(dbLocale, "giftBarang", id);
-    const docSnap = await getDocs(docRef);
+    const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
       res.status(200).json({ id: docSnap.id, ...docSnap.data() });
