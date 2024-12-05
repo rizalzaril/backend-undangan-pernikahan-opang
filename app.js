@@ -1770,7 +1770,7 @@ app.get("/getBarang", async (req, res) => {
 });
 
 // Mendapatkan barang berdasarkan ID
-app.get("/getBarangById/:id", async (req, res) => {
+app.get("/getBarang/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const docRef = doc(dbLocale, "giftBarang", id);
