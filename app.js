@@ -1941,6 +1941,88 @@ app.put("/updateSound/:id", upload, async (req, res) => {
   }
 });
 
+// ****************************** ALAMAT BARANG GIFT ************************ \\
+
+app.post("/postAlamatBarang", async (req, res) => {
+  const { alamatBarang } = req.body;
+
+  if (!alamatBarang) {
+    return res.status(400).json({ message: "All fields are required." });
+  }
+
+  try {
+    const docRef = await addDoc(collection(dbLocale, "alamatBarang"), {
+      alamatBarang,
+      timestamp: serverTimestamp(),
+    });
+
+    res.status(201).json({
+      message: "Rekening Kedua added successfully",
+      id: docRef.id,
+      alamatBarang,
+    });
+  } catch (error) {
+    console.error("Error adding document:", error);
+    res.status(500).json({ message: "Failed to add data" });
+  }
+});
+
+app.put("/updateAlamatBarang/:id", async (req, res) => {
+  const { id } = req.params; // Retrieve the document ID from the URL
+  const { alamatBarang } = req.body; // Get the updated alamatBarang from the request body
+
+  if (!alamatBarang) {
+    return res.status(400).json({ message: "Alamat Barang is required." });
+  }
+
+  try {
+    // Reference to the document to be updated
+    const docRef = doc(dbLocale, "alamatBarang", id);
+
+    // Update the document
+    await updateDoc(docRef, {
+      alamatBarang,
+      timestamp: serverTimestamp(), // Update timestamp
+    });
+
+    res.status(200).json({
+      message: "AlamatBarang updated successfully",
+      id,
+      alamatBarang,
+    });
+  } catch (error) {
+    console.error("Error updating document:", error);
+    res.status(500).json({ message: "Failed to update data" });
+  }
+});
+
+app.get("/getAlamatBarang", async (req, res) => {
+  try {
+    // Reference to the collection
+    const querySnapshot = await getDocs(collection(dbLocale, "alamatBarang"));
+
+    if (querySnapshot.empty) {
+      return res.status(404).json({ message: "No AlamatBarang found" });
+    }
+
+    // Map through the documents and return them
+    const alamatBarangList = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    res.status(200).json({
+      message: "AlamatBarang fetched successfully",
+      data: alamatBarangList,
+    });
+  } catch (error) {
+    console.error("Error fetching documents:", error);
+    res.status(500).json({ message: "Failed to fetch data" });
+  }
+});
+
+// get first rekening join bank \\
+
 // Server setup
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
