@@ -1769,6 +1769,20 @@ app.get("/getBarang", async (req, res) => {
   }
 });
 
+app.delete("/deleteBarang/:id", async (req, res) => {
+  const { id } = req.params; // Ambil ID dari parameter URL
+  try {
+    const docRef = doc(dbLocale, "giftBarang", id); // Referensi dokumen berdasarkan ID
+    await deleteDoc(docRef); // Hapus dokumen
+    res.status(200).json({ message: "Barang berhasil dihapus" });
+  } catch (error) {
+    console.error("Error deleting barang:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to delete barang", error: error.message });
+  }
+});
+
 // *********************** BACK SOUND UPLOAD ************************ \\
 app.post("/postSound", upload, async (req, res) => {
   // Validasi input
