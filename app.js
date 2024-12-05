@@ -1769,6 +1769,24 @@ app.get("/getBarang", async (req, res) => {
   }
 });
 
+// Mendapatkan barang berdasarkan ID
+app.get("/getBarangById/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const docRef = doc(dbLocale, "giftBarang", id);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      res.status(200).json({ id: docSnap.id, ...docSnap.data() });
+    } else {
+      res.status(404).json({ message: "Barang not found" });
+    }
+  } catch (error) {
+    console.error("Error fetching giftBarang by ID:", error);
+    res.status(500).json({ message: "Failed to fetch giftBarang by ID" });
+  }
+});
+
 app.delete("/deleteBarang/:id", async (req, res) => {
   const { id } = req.params; // Ambil ID dari parameter URL
   try {
